@@ -443,7 +443,3 @@ Documentação interativa disponível em:
 ```
 
 ---
-
-## Licença
-
-Projeto interno do ecossistema video-to-image.
