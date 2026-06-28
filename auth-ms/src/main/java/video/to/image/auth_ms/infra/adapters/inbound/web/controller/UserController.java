@@ -16,7 +16,6 @@ import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontr
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.exceptions.HttpExceptionMessage;
 import video.to.image.auth_ms.infra.adapters.inbound.web.services.UserService;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -65,6 +64,10 @@ public class UserController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = HttpExceptionMessage.class)
             )),
+            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = HttpExceptionMessage.class)
@@ -84,36 +87,16 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Buscar por todos os usuários",
-            method = "GET"
-    )
-    @ApiResponses( value = {
-            @ApiResponse(responseCode = "200", description = "Encontrados com sucesso"),
-            @ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = HttpExceptionMessage.class)
-            )),
-            @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = HttpExceptionMessage.class)
-            ))
-    })
-    @GetMapping
-    public ResponseEntity<List<UserCreateResponseDto>> list() {
-        var list = this.service.findAll();
-
-        if (list.isEmpty()) return ResponseEntity.noContent().build();
-
-        return ResponseEntity.ok(list);
-    }
-
-    @Operation(
             summary = "Buscar por usuário",
             method = "GET"
     )
     @ApiResponses( value = {
             @ApiResponse(responseCode = "200", description = "Encontrado com sucesso"),
             @ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
+            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = HttpExceptionMessage.class)
             )),
@@ -139,6 +122,10 @@ public class UserController {
     @ApiResponses( value = {
             @ApiResponse(responseCode = "200", description = "Deletado com sucesso"),
             @ApiResponse(responseCode = "401", description = "Não autenticado", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
+            @ApiResponse(responseCode = "403", description = "Acesso negado", content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = HttpExceptionMessage.class)
             )),

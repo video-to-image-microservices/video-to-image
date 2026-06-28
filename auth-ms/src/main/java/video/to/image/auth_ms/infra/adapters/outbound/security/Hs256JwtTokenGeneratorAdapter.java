@@ -29,6 +29,7 @@ public class Hs256JwtTokenGeneratorAdapter implements TokenGeneratorOutputPort {
 
         return Jwts.builder()
                 .subject(user.getId().toString())
+                .claim("userId", user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
                 .issuedAt(now)

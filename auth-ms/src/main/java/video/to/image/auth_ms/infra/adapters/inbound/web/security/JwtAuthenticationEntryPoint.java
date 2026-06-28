@@ -36,8 +36,8 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Ac
     ) throws IOException {
         SecurityErrorResponseWriter.write(
                 response,
-                HttpStatus.UNAUTHORIZED.value(),
-                ConstMessagesEnum.INVALID_CREDENTIALS.getMessagem()
+                HttpStatus.FORBIDDEN.value(),
+                ConstMessagesEnum.ACCESS_DENIED.getMessagem()
         );
     }
 }

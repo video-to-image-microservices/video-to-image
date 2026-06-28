@@ -6,9 +6,9 @@ import video.to.image.auth_ms.core.application.ports.out.UserRepositoryOutputPor
 import video.to.image.auth_ms.core.domain.entities.User;
 import video.to.image.auth_ms.core.domain.enums.ConstMessagesEnum;
 import video.to.image.auth_ms.core.domain.exceptions.ConflictException;
+import video.to.image.auth_ms.core.domain.exceptions.ForbiddenException;
 import video.to.image.auth_ms.core.domain.exceptions.NotFoundException;
 
-import java.util.List;
 import java.util.UUID;
 
 public class UserCrudUseCase implements UserCrudUseCaseInputPort {
@@ -22,7 +22,8 @@ public class UserCrudUseCase implements UserCrudUseCaseInputPort {
     }
 
     @Override
-    public User findById(UUID id) {
+    public User findById(UUID requesterId, UUID id) {
+        this.assertOwnership(requesterId, id);
         return this.userRepository.findById(id).orElseThrow(() -> new NotFoundException(ConstMessagesEnum.NOT_FOUND.getMessagem()));
     }
 
@@ -36,20 +37,25 @@ public class UserCrudUseCase implements UserCrudUseCaseInputPort {
     }
 
     @Override
-    public User update(UUID userid, User user) {
-        User persistedUser = this.findById(userid);
+    public User update(UUID requesterId, UUID userid, User user) {
+        this.assertOwnership(requesterId, userid);
+        User persistedUser = this.userRepository.findById(userid)
+                .orElseThrow(() -> new NotFoundException(ConstMessagesEnum.NOT_FOUND.getMessagem()));
         persistedUser.setName(user.getName());
         return this.userRepository.save(persistedUser);
     }
 
     @Override
-    public void delete(UUID userid) {
-        User persistedUser = this.findById(userid);
+    public void delete(UUID requesterId, UUID userid) {
+        this.assertOwnership(requesterId, userid);
+        User persistedUser = this.userRepository.findById(userid)
+                .orElseThrow(() -> new NotFoundException(ConstMessagesEnum.NOT_FOUND.getMessagem()));
         this.userRepository.delete(persistedUser);
     }
 
-    @Override
-    public List<User> findAll() {
-        return this.userRepository.findAll();
+    private void assertOwnership(UUID requesterId, UUID resourceId) {
+        if (!requesterId.equals(resourceId)) {
+            throw new ForbiddenException(ConstMessagesEnum.ACCESS_DENIED.getMessagem());
+        }
     }
 }

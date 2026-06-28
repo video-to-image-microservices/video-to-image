@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import video.to.image.auth_ms.core.domain.enums.ConstMessagesEnum;
 import video.to.image.auth_ms.core.domain.exceptions.ConflictException;
+import video.to.image.auth_ms.core.domain.exceptions.ForbiddenException;
 import video.to.image.auth_ms.core.domain.exceptions.NotFoundException;
 import video.to.image.auth_ms.core.domain.exceptions.UnauthorizedException;
 
@@ -43,6 +44,13 @@ public class HttpExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(new HttpExceptionMessage(HttpStatus.UNAUTHORIZED.value(), e.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<HttpExceptionMessage> handleForbidden(ForbiddenException e) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(new HttpExceptionMessage(HttpStatus.FORBIDDEN.value(), e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -7,7 +7,8 @@ public enum ConstMessagesEnum {
     INVALID_REQUEST("Requisição inválida"),
     DATA_INTEGRITY_VIOLATION("Violação de integridade dos dados"),
     INTERNAL_ERROR("Erro interno do servidor"),
-    INVALID_CREDENTIALS("Credenciais inválidas");
+    INVALID_CREDENTIALS("Credenciais inválidas"),
+    ACCESS_DENIED("Acesso negado");
 
     private final String messageBase;
 

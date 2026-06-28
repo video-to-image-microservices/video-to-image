@@ -10,8 +10,8 @@ import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontr
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontroller.create.UserCreateResponseDto;
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontroller.update.UserUpdateMapper;
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontroller.update.UserUpdateRequestDto;
+import video.to.image.auth_ms.infra.adapters.inbound.web.security.SecurityContextUtils;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,26 +30,21 @@ public class UserService {
 
     @Transactional
     public UserCreateResponseDto update(UUID id, UserUpdateRequestDto body) {
-        User user = this.userUseCases.update(id, UserUpdateMapper.toDomain(body));
+        UUID requesterId = SecurityContextUtils.getCurrentUserId();
+        User user = this.userUseCases.update(requesterId, id, UserUpdateMapper.toDomain(body));
         return UserCreateMapper.toResponseDto(user);
     }
 
-    public List<UserCreateResponseDto> findAll() {
-        return this.userUseCases.findAll()
-                .stream()
-                .map(UserCreateMapper::toResponseDto)
-                .toList();
-    }
-
     public UserCreateResponseDto findById(UUID id) {
-        User user = this.userUseCases.findById(id);
+        UUID requesterId = SecurityContextUtils.getCurrentUserId();
+        User user = this.userUseCases.findById(requesterId, id);
         return UserCreateMapper.toResponseDto(user);
     }
 
     @Transactional
     public void delete(UUID id) {
-        this.userUseCases.delete(id);
-//        this.publisher.publishDeletion(new UserEvent(id));
+        UUID requesterId = SecurityContextUtils.getCurrentUserId();
+        this.userUseCases.delete(requesterId, id);
+        //        this.publisher.publishDeletion(new UserEvent(id));
     }
-
 }
