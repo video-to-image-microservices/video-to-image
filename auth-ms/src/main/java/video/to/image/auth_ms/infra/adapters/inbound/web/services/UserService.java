@@ -11,6 +11,8 @@ import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontr
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontroller.update.UserUpdateMapper;
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontroller.update.UserUpdateRequestDto;
 import video.to.image.auth_ms.infra.adapters.inbound.web.security.SecurityContextUtils;
+import video.to.image.auth_ms.infra.broker.publisher.UserEventPublisher;
+import video.to.image.auth_ms.infra.broker.events.UserEvent;
 
 import java.util.UUID;
 
@@ -18,13 +20,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
     private final UserCrudUseCaseInputPort userUseCases;
-    // TODO config SQS
-//    private final UserEventPublisher publisher;
+    private final UserEventPublisher publisher;
 
     @Transactional
     public UserCreateResponseDto create(UserCreateRequestDto body) {
         User user = this.userUseCases.create(UserCreateMapper.toDomain(body));
-//        this.publisher.publishCreation(new UserEvent(user.getId()));
+        this.publisher.publishCreation(new UserEvent(user.getId()));
         return UserCreateMapper.toResponseDto(user);
     }
 
@@ -45,6 +46,6 @@ public class UserService {
     public void delete(UUID id) {
         UUID requesterId = SecurityContextUtils.getCurrentUserId();
         this.userUseCases.delete(requesterId, id);
-        //        this.publisher.publishDeletion(new UserEvent(id));
+        this.publisher.publishDeletion(new UserEvent(id));
     }
 }

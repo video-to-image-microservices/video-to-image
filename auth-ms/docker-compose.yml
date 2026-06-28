@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: auth_ms
+      POSTGRES_USER: usr
+      POSTGRES_PASSWORD: pwd
+    ports:
+      - "5432:5432"
+
+  localstack:
+    # latest (2026.x) exige LOCALSTACK_AUTH_TOKEN; 4.14 funciona sem conta
+    image: localstack/localstack:4.14.0
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      DEBUG: 0
+    volumes:
+      - ./localstack/init:/etc/localstack/init/ready.d
