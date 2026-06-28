@@ -41,4 +41,9 @@ public class UserRepositoryOutputPortAdapter implements UserRepositoryOutputPort
     public void delete(User user) {
         this.repository.delete(this.mapper.toEntity(user));
     }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return this.repository.existsByEmail(email);
+    }
 }

@@ -4,6 +4,7 @@ import video.to.image.auth_ms.core.application.ports.in.UserCrudUseCaseInputPort
 import video.to.image.auth_ms.core.application.ports.out.UserRepositoryOutputPort;
 import video.to.image.auth_ms.core.domain.entities.User;
 import video.to.image.auth_ms.core.domain.enums.ConstMessagesEnum;
+import video.to.image.auth_ms.core.domain.exceptions.ConflictException;
 import video.to.image.auth_ms.core.domain.exceptions.NotFoundException;
 
 import java.util.List;
@@ -24,6 +25,9 @@ public class UserCrudUseCase implements UserCrudUseCaseInputPort {
 
     @Override
     public User create(User user) {
+        if (this.userRepository.existsByEmail(user.getEmail())) {
+            throw new ConflictException(ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessagem());
+        }
         return this.userRepository.save(user);
     }
 

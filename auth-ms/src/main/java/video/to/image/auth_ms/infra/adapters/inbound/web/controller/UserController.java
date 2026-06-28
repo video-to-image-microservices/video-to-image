@@ -33,6 +33,14 @@ public class UserController {
     )
     @ApiResponses( value = {
             @ApiResponse(responseCode = "201", description = "Criado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
+            @ApiResponse(responseCode = "409", description = "E-mail já cadastrado", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
             @ApiResponse(responseCode = "500", description = "Erro interno", content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = HttpExceptionMessage.class)
@@ -49,7 +57,15 @@ public class UserController {
     )
     @ApiResponses( value = {
             @ApiResponse(responseCode = "200", description = "Atualizado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado", content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = HttpExceptionMessage.class)
+            )),
+            @ApiResponse(responseCode = "409", description = "Conflito de dados", content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = HttpExceptionMessage.class)
             )),

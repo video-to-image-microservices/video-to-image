@@ -1,7 +1,12 @@
 package video.to.image.auth_ms.core.domain.enums;
 
 public enum ConstMessagesEnum {
-    NOT_FOUND("Entidade não encontrada");
+    NOT_FOUND("Entidade não encontrada"),
+    EMAIL_ALREADY_EXISTS("E-mail já cadastrado"),
+    VALIDATION_FAILED("Dados inválidos"),
+    INVALID_REQUEST("Requisição inválida"),
+    DATA_INTEGRITY_VIOLATION("Violação de integridade dos dados"),
+    INTERNAL_ERROR("Erro interno do servidor");
 
     private final String messageBase;
 
