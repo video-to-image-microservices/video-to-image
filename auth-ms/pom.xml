@@ -34,6 +34,7 @@
 		<springdoc.version>2.8.5</springdoc.version>
 		<jjwt.version>0.12.6</jjwt.version>
 		<spring-cloud-aws.version>4.0.2</spring-cloud-aws.version>
+		<jacoco.version>0.8.12</jacoco.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -129,6 +130,11 @@
 			<artifactId>spring-boot-starter-validation-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -200,6 +206,34 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludes>
+						<exclude>**/AuthMsApplication.class</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>**/*MapperImpl.class</exclude>
+						<exclude>**/config/SqsConfig.class</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
