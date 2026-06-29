@@ -11,7 +11,8 @@ import video.to.image.auth_ms.infra.broker.publisher.UserEventPublisher;
 @TestPropertySource(properties = {
         "jwt.secret=test-secret-key-with-at-least-32-characters",
         "spring.cloud.aws.sqs.enabled=false",
-        "mongock.enabled=false"
+        "mongock.enabled=false",
+        "spring.cache.type=simple"
 })
 class AuthMsApplicationTests {
 

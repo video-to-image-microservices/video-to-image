@@ -7,10 +7,13 @@ services:
       SPRING_MONGODB_URI: mongodb://mongo:27017/auth_ms
       MONGOCK_ENABLED: "true"
       SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      REDIS_HOST: redis
     depends_on:
       mongo:
         condition: service_started
       localstack:
+        condition: service_started
+      redis:
         condition: service_started
 
   mongo:
@@ -32,6 +35,11 @@ services:
       DEBUG: 0
     volumes:
       - ./localstack/init:/etc/localstack/init/ready.d
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
 volumes:
   mongo_data:

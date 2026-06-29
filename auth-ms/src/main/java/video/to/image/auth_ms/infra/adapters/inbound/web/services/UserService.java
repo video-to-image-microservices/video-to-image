@@ -1,6 +1,9 @@
 package video.to.image.auth_ms.infra.adapters.inbound.web.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import video.to.image.auth_ms.core.application.ports.in.UserCrudUseCaseInputPort;
 import video.to.image.auth_ms.core.domain.entities.User;
@@ -27,18 +30,21 @@ public class UserService {
         return UserCreateMapper.toResponseDto(user);
     }
 
+    @CachePut(value = "tb_user", key = "#id")
     public UserCreateResponseDto update(UUID id, UserUpdateRequestDto body) {
         UUID requesterId = SecurityContextUtils.getCurrentUserId();
         User user = this.userUseCases.update(requesterId, id, UserUpdateMapper.toDomain(body));
         return UserCreateMapper.toResponseDto(user);
     }
 
+    @Cacheable(value = "tb_user", key = "#id")
     public UserCreateResponseDto findById(UUID id) {
         UUID requesterId = SecurityContextUtils.getCurrentUserId();
         User user = this.userUseCases.findById(requesterId, id);
         return UserCreateMapper.toResponseDto(user);
     }
 
+    @CacheEvict(value = "tb_user", key = "#id")
     public void delete(UUID id) {
         UUID requesterId = SecurityContextUtils.getCurrentUserId();
         this.userUseCases.delete(requesterId, id);

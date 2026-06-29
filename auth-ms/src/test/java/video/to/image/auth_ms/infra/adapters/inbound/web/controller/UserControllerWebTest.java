@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
@@ -41,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtAuthenticationEntryPoint.class, HttpExceptionHandler.class})
 @TestPropertySource(properties = {
         "jwt.secret=test-secret-key-with-at-least-32-characters",
-        "jwt.expiration-ms=86400000"
+        "jwt.expiration-ms=86400000",
+        "spring.cache.type=simple"
 })
 class UserControllerWebTest {
 
@@ -52,6 +54,9 @@ class UserControllerWebTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private CacheManager cacheManager;
 
     private UUID userId;
     private String validToken;
