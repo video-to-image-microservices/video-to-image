@@ -2,8 +2,9 @@ package video.to.image.auth_ms.infra.adapters.inbound.web.presenter.exceptions;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -24,6 +25,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class HttpExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(HttpExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<HttpExceptionMessage> handleNotFound(NotFoundException e) {
@@ -67,7 +70,7 @@ public class HttpExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new HttpExceptionMessage(
                         HttpStatus.BAD_REQUEST.value(),
-                        ConstMessagesEnum.VALIDATION_FAILED.getMessagem(),
+                        ConstMessagesEnum.VALIDATION_FAILED.getMessage(),
                         errors
                 ));
     }
@@ -86,7 +89,7 @@ public class HttpExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new HttpExceptionMessage(
                         HttpStatus.BAD_REQUEST.value(),
-                        ConstMessagesEnum.VALIDATION_FAILED.getMessagem(),
+                        ConstMessagesEnum.VALIDATION_FAILED.getMessage(),
                         errors
                 ));
     }
@@ -97,7 +100,7 @@ public class HttpExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new HttpExceptionMessage(
                         HttpStatus.BAD_REQUEST.value(),
-                        ConstMessagesEnum.INVALID_REQUEST.getMessagem()
+                        ConstMessagesEnum.INVALID_REQUEST.getMessage()
                 ));
     }
 
@@ -107,37 +110,28 @@ public class HttpExceptionHandler {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(new HttpExceptionMessage(
                         HttpStatus.BAD_REQUEST.value(),
-                        ConstMessagesEnum.INVALID_REQUEST.getMessagem()
+                        ConstMessagesEnum.INVALID_REQUEST.getMessage()
                 ));
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<HttpExceptionMessage> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ResponseEntity<HttpExceptionMessage> handleDuplicateKey(DuplicateKeyException e) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(new HttpExceptionMessage(
                         HttpStatus.CONFLICT.value(),
-                        ConstMessagesEnum.DATA_INTEGRITY_VIOLATION.getMessagem()
-                ));
-    }
-
-    @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<HttpExceptionMessage> handleDataAccess(DataAccessException e) {
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new HttpExceptionMessage(
-                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        ConstMessagesEnum.INTERNAL_ERROR.getMessagem()
+                        ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessage()
                 ));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<HttpExceptionMessage> handleException(Exception e) {
+        log.error("e: ", e);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new HttpExceptionMessage(
                         HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        ConstMessagesEnum.INTERNAL_ERROR.getMessagem()
+                        ConstMessagesEnum.INTERNAL_ERROR.getMessage()
                 ));
     }
 }

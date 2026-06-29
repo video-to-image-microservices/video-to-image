@@ -16,7 +16,7 @@ public enum ConstMessagesEnum {
         this.messageBase = messageBase;
     }
 
-    public String getMessagem() {
+    public String getMessage() {
         return this.messageBase;
     }
 }

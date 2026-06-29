@@ -15,13 +15,13 @@ public final class SecurityContextUtils {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || authentication.getPrincipal() == null) {
-            throw new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessagem());
+            throw new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage());
         }
 
         try {
             return UUID.fromString(authentication.getPrincipal().toString());
         } catch (IllegalArgumentException e) {
-            throw new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessagem());
+            throw new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage());
         }
     }
 }

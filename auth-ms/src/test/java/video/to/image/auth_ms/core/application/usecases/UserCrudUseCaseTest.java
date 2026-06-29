@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -62,6 +63,7 @@ class UserCrudUseCaseTest {
 
         assertEquals(savedUser, result);
         assertEquals(HASHED_PASSWORD, newUser.getPassword());
+        assertNotNull(newUser.getId());
         verify(userRepository).save(newUser);
     }
 
@@ -76,7 +78,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.create(newUser)
         );
 
-        assertEquals(ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessage(), exception.getMessage());
         verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any());
     }
@@ -99,7 +101,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.findById(otherUserId, userId)
         );
 
-        assertEquals(ConstMessagesEnum.ACCESS_DENIED.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.ACCESS_DENIED.getMessage(), exception.getMessage());
         verify(userRepository, never()).findById(userId);
     }
 
@@ -112,7 +114,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.findById(userId, userId)
         );
 
-        assertEquals(ConstMessagesEnum.NOT_FOUND.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.NOT_FOUND.getMessage(), exception.getMessage());
     }
 
     @Test
@@ -140,7 +142,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.update(otherUserId, userId, updateData)
         );
 
-        assertEquals(ConstMessagesEnum.ACCESS_DENIED.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.ACCESS_DENIED.getMessage(), exception.getMessage());
         verify(userRepository, never()).findById(userId);
     }
 
@@ -155,7 +157,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.update(userId, userId, updateData)
         );
 
-        assertEquals(ConstMessagesEnum.NOT_FOUND.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.NOT_FOUND.getMessage(), exception.getMessage());
         verify(userRepository, never()).save(any());
     }
 
@@ -179,7 +181,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.delete(otherUserId, userId)
         );
 
-        assertEquals(ConstMessagesEnum.ACCESS_DENIED.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.ACCESS_DENIED.getMessage(), exception.getMessage());
         verify(userRepository, never()).findById(userId);
         verify(userRepository, never()).delete(any());
     }
@@ -193,7 +195,7 @@ class UserCrudUseCaseTest {
                 () -> userCrudUseCase.delete(userId, userId)
         );
 
-        assertEquals(ConstMessagesEnum.NOT_FOUND.getMessagem(), exception.getMessage());
+        assertEquals(ConstMessagesEnum.NOT_FOUND.getMessage(), exception.getMessage());
         verify(userRepository, never()).delete(any());
     }
 }

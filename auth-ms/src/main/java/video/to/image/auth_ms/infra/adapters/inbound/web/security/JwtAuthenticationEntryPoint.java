@@ -24,7 +24,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Ac
         SecurityErrorResponseWriter.write(
                 response,
                 HttpStatus.UNAUTHORIZED.value(),
-                ConstMessagesEnum.INVALID_CREDENTIALS.getMessagem()
+                ConstMessagesEnum.INVALID_CREDENTIALS.getMessage()
         );
     }
 
@@ -37,7 +37,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint, Ac
         SecurityErrorResponseWriter.write(
                 response,
                 HttpStatus.FORBIDDEN.value(),
-                ConstMessagesEnum.ACCESS_DENIED.getMessagem()
+                ConstMessagesEnum.ACCESS_DENIED.getMessage()
         );
     }
 }

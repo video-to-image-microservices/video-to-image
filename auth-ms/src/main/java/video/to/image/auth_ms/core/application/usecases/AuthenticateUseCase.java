@@ -28,10 +28,10 @@ public class AuthenticateUseCase implements AuthenticateUseCaseInputPort {
     @Override
     public AuthResult authenticate(String email, String password) {
         User user = this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new UnauthorizedException("email fodido"));
+                .orElseThrow(() -> new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage()));
 
         if (!this.passwordEncoder.matches(password, user.getPassword())) {
-            throw new UnauthorizedException("senha fodida");
+            throw new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage());
         }
 
         String token = this.tokenGenerator.generate(user);

@@ -120,7 +120,7 @@ class UserControllerWebTest {
         UUID otherUserId = UUID.randomUUID();
 
         when(userService.findById(otherUserId))
-                .thenThrow(new ForbiddenException(ConstMessagesEnum.ACCESS_DENIED.getMessagem()));
+                .thenThrow(new ForbiddenException(ConstMessagesEnum.ACCESS_DENIED.getMessage()));
 
         mockMvc.perform(get("/users/{id}", otherUserId)
                         .header("Authorization", "Bearer " + validToken))

@@ -4,17 +4,23 @@ services:
     ports:
       - "8082:8082"
     environment:
-      # TODO script liquibase rodando uma única vez no CI/CD
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_HOST:-host.docker.internal}:5432/auth_ms
-      SPRING_DATASOURCE_USERNAME: usr
-      SPRING_DATASOURCE_PASSWORD: pwd
-      SPRING_LIQUIBASE_ENABLED: "true"
+      SPRING_MONGODB_URI: mongodb://mongo:27017/auth_ms
+      MONGOCK_ENABLED: "true"
       SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
+      mongo:
+        condition: service_started
       localstack:
         condition: service_started
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: auth_ms
+    volumes:
+      - mongo_data:/data/db
 
   localstack:
     # latest (2026.x) exige LOCALSTACK_AUTH_TOKEN; 4.14 funciona sem conta
@@ -26,3 +32,6 @@ services:
       DEBUG: 0
     volumes:
       - ./localstack/init:/etc/localstack/init/ready.d
+
+volumes:
+  mongo_data:

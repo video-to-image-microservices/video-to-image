@@ -15,7 +15,7 @@ O código da aplicação está no diretório [`auth-ms/`](auth-ms/).
 - [Rodando localmente](#rodando-localmente)
 - [Docker](#docker)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
-- [Banco de dados e Liquibase](#banco-de-dados-e-liquibase)
+- [Banco de dados e Mongock](#banco-de-dados-e-mongock)
 - [Testes](#testes)
 - [Swagger](#swagger)
 
@@ -51,8 +51,8 @@ Este serviço concentra **quem o usuário é** e **se as credenciais são válid
 | Java | 17 |
 | Spring Boot | 4.1.0 |
 | Spring Security | JWT stateless (HS256) |
-| Spring Data JPA | Hibernate + PostgreSQL |
-| Liquibase | Migrations versionadas |
+| Spring Data MongoDB | DocumentDB / MongoDB 7 (dev) |
+| Mongock | Migrations e índices versionados |
 | Spring Cloud AWS SQS | 4.0.2 |
 | MapStruct | 1.6.3 |
 | Springdoc OpenAPI | 2.8.5 |
@@ -62,7 +62,7 @@ Este serviço concentra **quem o usuário é** e **se as credenciais são válid
 
 ## Arquitetura
 
-O projeto segue **Arquitetura Hexagonal (Ports & Adapters)**. O núcleo (`core/`) não depende de Spring, JPA ou AWS; a infraestrutura (`infra/`) implementa os adaptadores.
+O projeto segue **Arquitetura Hexagonal (Ports & Adapters)**. O núcleo (`core/`) não depende de Spring, MongoDB ou AWS; a infraestrutura (`infra/`) implementa os adaptadores.
 
 ```
 auth-ms/src/main/java/video/to/image/auth_ms/
@@ -71,7 +71,7 @@ auth-ms/src/main/java/video/to/image/auth_ms/
 │   └── application/      # Ports (in/out) e use cases
 └── infra/
     ├── adapters/inbound/web/     # Controllers, DTOs, JWT filter
-    ├── adapters/outbound/        # JPA, BCrypt, JWT generator
+    ├── adapters/outbound/        # MongoDB, BCrypt, JWT generator
     ├── broker/                   # Publicação SQS
     └── config/                   # Beans Spring, Security, properties
 ```
@@ -104,7 +104,7 @@ sequenceDiagram
 | Domain | `core.domain` | `User`, `AuthResult`, exceções |
 | Application | `core.application` | `AuthenticateUseCase`, `UserCrudUseCase`, ports |
 | Inbound | `infra.adapters.inbound.web` | REST API, segurança HTTP, DTOs |
-| Outbound persistence | `infra.adapters.outbound.persistence` | JPA, repositórios |
+| Outbound persistence | `infra.adapters.outbound.persistence` | MongoDB, repositórios |
 | Outbound security | `infra.adapters.outbound.security` | BCrypt, geração JWT |
 | Broker | `infra.broker` | `UserEventPublisher` → SQS |
 
@@ -211,7 +211,7 @@ Crie as filas na AWS (ex.: via Terraform/CloudFormation) com os mesmos nomes con
 - **Maven** (ou use o wrapper `./mvnw` incluído no projeto)
 - **Docker** e **Docker Compose**
 - **AWS CLI** (opcional, para inspecionar filas no LocalStack)
-- **PostgreSQL 14+** (local ou via Docker)
+- **MongoDB** (via Docker Compose, compatível com DocumentDB)
 
 ---
 
@@ -223,65 +223,29 @@ Todos os comandos abaixo assumem o diretório `auth-ms/` (onde estão `pom.xml`,
 cd auth-ms
 ```
 
-### 1. Subir o PostgreSQL
-
-O `docker-compose` do projeto **não inclui** Postgres — ele roda separadamente para flexibilidade entre desenvolvimento local e deploy na AWS (RDS).
-
-**Opção A — container Docker dedicado (recomendado):**
+### 1. Subir MongoDB e LocalStack
 
 ```bash
-docker run -d \
-  --name auth-ms-postgres \
-  -e POSTGRES_DB=auth_ms \
-  -e POSTGRES_USER=usr \
-  -e POSTGRES_PASSWORD=pwd \
-  -p 5432:5432 \
-  postgres:latest
+docker compose up -d mongo localstack
 ```
 
-**Parar / remover:**
+Aguarde o MongoDB e o LocalStack estarem prontos:
 
 ```bash
-docker stop auth-ms-postgres
-docker rm auth-ms-postgres
+docker compose logs -f mongo localstack
 ```
 
-**Opção B — recriar do zero (apaga dados):**
-
-```bash
-docker rm -f auth-ms-postgres 2>/dev/null
-docker run -d \
-  --name auth-ms-postgres \
-  -e POSTGRES_DB=auth_ms \
-  -e POSTGRES_USER=usr \
-  -e POSTGRES_PASSWORD=pwd \
-  -p 5432:5432 \
-  postgres:latest
-```
-
-### 2. Subir o LocalStack (SQS)
-
-```bash
-docker compose up -d localstack
-```
-
-Aguarde o status `Ready` nos logs:
-
-```bash
-docker compose logs -f localstack
-```
-
-### 3. Rodar a aplicação (Maven)
+### 2. Rodar a aplicação (Maven)
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-Na primeira execução, o **Liquibase** cria a tabela `tb_user` automaticamente.
+Na primeira execução, o **Mongock** cria o índice único em `email` na coleção `tb_user`.
 
 A aplicação sobe em **http://localhost:8082**.
 
-### 4. Fluxo completo de validação
+### 3. Fluxo completo de validação
 
 ```bash
 # 1. Criar usuário
@@ -297,28 +261,22 @@ curl -s -X POST http://localhost:8082/auth/login \
 # 3. Verificar evento na fila
 aws --endpoint-url=http://localhost:4566 sqs receive-message \
   --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/user-created-queue
+# 4. Inspecionar dados no MongoDB
+docker compose exec mongo mongosh auth_ms --eval 'db.tb_user.find().pretty()'
 ```
 
 ---
 
 ## Docker
 
-### Subir app + LocalStack (Postgres no host)
-
-Com o Postgres rodando no host (porta `5432`), suba o restante da stack:
+### Subir stack completa (app + MongoDB + LocalStack)
 
 ```bash
 cd auth-ms
 docker compose up --build
 ```
 
-O container `auth-ms` conecta ao Postgres via `host.docker.internal` e ao LocalStack pelo hostname `localstack`.
-
-**Customizar host do banco:**
-
-```bash
-DB_HOST=192.168.1.10 docker compose up --build
-```
+O container `auth-ms` conecta ao MongoDB pelo hostname `mongo` e ao LocalStack pelo hostname `localstack`.
 
 **Customizar JWT secret:**
 
@@ -339,9 +297,7 @@ Build multi-stage em [`auth-ms/Dockerfile`](auth-ms/Dockerfile):
 cd auth-ms
 docker build -t auth-ms:local .
 docker run -p 8082:8082 \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/auth_ms \
-  -e SPRING_DATASOURCE_USERNAME=usr \
-  -e SPRING_DATASOURCE_PASSWORD=pwd \
+  -e SPRING_MONGODB_URI=mongodb://host.docker.internal:27017/auth_ms \
   -e SPRING_CLOUD_AWS_SQS_ENDPOINT=http://host.docker.internal:4566 \
   --add-host=host.docker.internal:host-gateway \
   auth-ms:local
@@ -353,50 +309,53 @@ docker run -p 8082:8082 \
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
-| `SPRING_DATASOURCE_URL` | JDBC URL do PostgreSQL | `jdbc:postgresql://localhost:5432/auth_ms` |
-| `SPRING_DATASOURCE_USERNAME` | Usuário do banco | `usr` |
-| `SPRING_DATASOURCE_PASSWORD` | Senha do banco | `pwd` |
+| `MONGODB_URI` / `SPRING_MONGODB_URI` | URI de conexão MongoDB/DocumentDB | `mongodb://localhost:27017/auth_ms` |
+| `MONGOCK_ENABLED` | Habilita migrations Mongock no startup | `true` |
 | `JWT_SECRET` | Chave HMAC para assinar JWT | Valor default em `application.properties` |
 | `JWT_EXPIRATION_MS` | Expiração do token (via `jwt.expiration-ms`) | `86400000` (24h) |
 | `SPRING_CLOUD_AWS_SQS_ENDPOINT` | Endpoint SQS (LocalStack) | `http://localhost:4566` |
-| `SPRING_LIQUIBASE_ENABLED` | Habilita migrations no startup | `true` |
-| `DB_HOST` | Host do Postgres (apenas docker-compose) | `host.docker.internal` |
+
+### DocumentDB na AWS
+
+Em produção, defina `MONGODB_URI` com TLS e parâmetros obrigatórios do DocumentDB:
+
+```
+mongodb://user:pass@cluster.docdb.amazonaws.com:27017/auth_ms?tls=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false
+```
+
+Configure também o truststore com o certificado RDS da AWS.
 
 ---
 
-## Banco de dados e Liquibase
+## Banco de dados e Mongock
 
-O schema é gerenciado pelo **Liquibase**, não pelo Hibernate (`ddl-auto=validate`).
+Os dados são armazenados no MongoDB (dev local) ou **Amazon DocumentDB** (produção). O schema de índices é gerenciado pelo **Mongock** (runner standalone, compatível com Spring Boot 4).
 
 ```
-auth-ms/src/main/resources/db/changelog/
-├── master.xml      # Ponto de entrada — inclui changelogs por tabela
-└── tb_user.xml     # Criação da tabela tb_user
+auth-ms/src/main/java/video/to/image/auth_ms/infra/migrations/
+└── UserCollectionChangeUnit.java   # Índice único em email
 ```
 
-### Tabela `tb_user`
+### Coleção `tb_user`
 
-| Coluna | Tipo | Constraints |
-|--------|------|-------------|
-| `id` | UUID | PK |
-| `name` | VARCHAR(255) | nullable |
-| `email` | VARCHAR(255) | NOT NULL, UNIQUE |
-| `password` | VARCHAR(255) | NOT NULL (BCrypt) |
+| Campo | Tipo | Constraints |
+|-------|------|-------------|
+| `id` | UUID | PK (`@Id`) |
+| `name` | String | opcional |
+| `email` | String | único (índice Mongock) |
+| `password` | String | BCrypt |
 
 ### Adicionar novas migrations
 
-1. Crie `db/changelog/<nome>.xml` com um novo `changeSet`
-2. Inclua em `master.xml`:
+1. Crie uma nova classe `@ChangeUnit` em `infra/migrations/`
+2. Defina `id`, `order` e `author` únicos
+3. O Mongock registra o histórico na coleção `mongockChangeLog`
 
-```xml
-<include file="<nome>.xml" relativeToChangelogFile="true"/>
-```
+> Nunca altere ChangeUnits já aplicados; sempre crie novos com `order` incrementado.
 
-> Nunca altere changesets já aplicados. O Liquibase registra o histórico em `databasechangelog`.
+### Mongock em produção (ASG / múltiplas instâncias)
 
-### Liquibase em produção (ASG / múltiplas instâncias)
-
-O Liquibase roda em todo startup da aplicação. Para ambientes com auto scaling, migrations já aplicadas são ignoradas (consulta rápida ao `databasechangelog`). Para deploys com schema novo em escala, considere rodar migrations uma única vez no CI/CD antes do deploy.
+O Mongock usa lock distribuído no MongoDB. Migrations já aplicadas são ignoradas. Para deploys com índice novo em escala, considere rodar migrations uma única vez no CI/CD antes do deploy.
 
 ---
 
@@ -407,7 +366,7 @@ cd auth-ms
 ./mvnw test
 ```
 
-O teste de contexto (`AuthMsApplicationTests`) desabilita o SQS (`spring.cloud.aws.sqs.enabled=false`) e mocka o `UserEventPublisher`. Requer PostgreSQL acessível em `localhost:5432`.
+O teste de contexto (`AuthMsApplicationTests`) desabilita SQS e Mongock e mocka `UserEventPublisher` e `MongoUserRepository`.
 
 ---
 
@@ -438,7 +397,7 @@ Documentação interativa disponível em:
         │   ├── java/...
         │   └── resources/
         │       ├── application.properties
-        │       └── db/changelog/
+        │       └── (migrations em infra/migrations/)
         └── test/
 ```
 

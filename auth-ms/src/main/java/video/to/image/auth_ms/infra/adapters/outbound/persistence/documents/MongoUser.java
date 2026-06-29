@@ -1,29 +1,22 @@
-package video.to.image.auth_ms.infra.adapters.outbound.persistence.jpaentities;
+package video.to.image.auth_ms.infra.adapters.outbound.persistence.documents;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.UUID;
 
-@Entity
-@Table(name = "tb_user")
-public class JpaUser {
+@Document(collection = "tb_user")
+public class MongoUser {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-
-    @Column(length = 255)
     private String name;
-
-    @Column(nullable = false, unique = true, length = 255)
     private String email;
-
-    @Column(nullable = false, length = 255)
     private String password;
 
-    public JpaUser() {}
+    public MongoUser() {}
 
-    public JpaUser(UUID id, String name, String email, String password) {
+    public MongoUser(UUID id, String name, String email, String password) {
         this.id = id;
         this.name = name;
         this.email = email;

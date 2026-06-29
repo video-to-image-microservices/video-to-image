@@ -2,7 +2,6 @@ package video.to.image.auth_ms.infra.adapters.inbound.web.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import video.to.image.auth_ms.core.application.ports.in.UserCrudUseCaseInputPort;
 import video.to.image.auth_ms.core.domain.entities.User;
 import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.dto.usercontroller.create.UserCreateMapper;
@@ -22,14 +21,12 @@ public class UserService {
     private final UserCrudUseCaseInputPort userUseCases;
     private final UserEventPublisher publisher;
 
-    @Transactional
     public UserCreateResponseDto create(UserCreateRequestDto body) {
         User user = this.userUseCases.create(UserCreateMapper.toDomain(body));
         this.publisher.publishCreation(new UserEvent(user.getId()));
         return UserCreateMapper.toResponseDto(user);
     }
 
-    @Transactional
     public UserCreateResponseDto update(UUID id, UserUpdateRequestDto body) {
         UUID requesterId = SecurityContextUtils.getCurrentUserId();
         User user = this.userUseCases.update(requesterId, id, UserUpdateMapper.toDomain(body));
@@ -42,7 +39,6 @@ public class UserService {
         return UserCreateMapper.toResponseDto(user);
     }
 
-    @Transactional
     public void delete(UUID id) {
         UUID requesterId = SecurityContextUtils.getCurrentUserId();
         this.userUseCases.delete(requesterId, id);

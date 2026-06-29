@@ -3,8 +3,7 @@ package video.to.image.auth_ms.infra.adapters.inbound.web.presenter.exceptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -33,7 +32,7 @@ class HttpExceptionHandlerTest {
     @Test
     void handleNotFound_shouldReturn404() {
         ResponseEntity<HttpExceptionMessage> response = handler.handleNotFound(
-                new NotFoundException(ConstMessagesEnum.NOT_FOUND.getMessagem())
+                new NotFoundException(ConstMessagesEnum.NOT_FOUND.getMessage())
         );
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
@@ -43,7 +42,7 @@ class HttpExceptionHandlerTest {
     @Test
     void handleConflict_shouldReturn409() {
         ResponseEntity<HttpExceptionMessage> response = handler.handleConflict(
-                new ConflictException(ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessagem())
+                new ConflictException(ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessage())
         );
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
@@ -53,7 +52,7 @@ class HttpExceptionHandlerTest {
     @Test
     void handleUnauthorized_shouldReturn401() {
         ResponseEntity<HttpExceptionMessage> response = handler.handleUnauthorized(
-                new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessagem())
+                new UnauthorizedException(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage())
         );
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
@@ -63,7 +62,7 @@ class HttpExceptionHandlerTest {
     @Test
     void handleForbidden_shouldReturn403() {
         ResponseEntity<HttpExceptionMessage> response = handler.handleForbidden(
-                new ForbiddenException(ConstMessagesEnum.ACCESS_DENIED.getMessagem())
+                new ForbiddenException(ConstMessagesEnum.ACCESS_DENIED.getMessage())
         );
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
@@ -90,23 +89,13 @@ class HttpExceptionHandlerTest {
     }
 
     @Test
-    void handleDataIntegrityViolation_shouldReturn409() {
-        ResponseEntity<HttpExceptionMessage> response = handler.handleDataIntegrityViolation(
-                new DataIntegrityViolationException("duplicate key")
+    void handleDuplicateKey_shouldReturn409() {
+        ResponseEntity<HttpExceptionMessage> response = handler.handleDuplicateKey(
+                new DuplicateKeyException("duplicate key")
         );
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertEquals(ConstMessagesEnum.DATA_INTEGRITY_VIOLATION.getMessagem(), response.getBody().getMessage());
-    }
-
-    @Test
-    void handleDataAccess_shouldReturn500() {
-        ResponseEntity<HttpExceptionMessage> response = handler.handleDataAccess(
-                new DataAccessException("db error") {}
-        );
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals(ConstMessagesEnum.INTERNAL_ERROR.getMessagem(), response.getBody().getMessage());
+        assertEquals(ConstMessagesEnum.EMAIL_ALREADY_EXISTS.getMessage(), response.getBody().getMessage());
     }
 
     @Test
@@ -116,6 +105,6 @@ class HttpExceptionHandlerTest {
         );
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals(ConstMessagesEnum.INTERNAL_ERROR.getMessagem(), response.getBody().getMessage());
+        assertEquals(ConstMessagesEnum.INTERNAL_ERROR.getMessage(), response.getBody().getMessage());
     }
 }

@@ -11,6 +11,7 @@ import video.to.image.auth_ms.core.application.ports.out.TokenGeneratorOutputPor
 import video.to.image.auth_ms.core.application.ports.out.UserRepositoryOutputPort;
 import video.to.image.auth_ms.core.domain.entities.AuthResult;
 import video.to.image.auth_ms.core.domain.entities.User;
+import video.to.image.auth_ms.core.domain.enums.ConstMessagesEnum;
 import video.to.image.auth_ms.core.domain.exceptions.UnauthorizedException;
 
 import java.util.Optional;
@@ -72,7 +73,7 @@ class AuthenticateUseCaseTest {
                 () -> authenticateUseCase.authenticate(EMAIL, RAW_PASSWORD)
         );
 
-        assertEquals("email fodido", exception.getMessage());
+        assertEquals(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage(), exception.getMessage());
         verify(passwordEncoder, never()).matches(RAW_PASSWORD, HASHED_PASSWORD);
         verify(tokenGenerator, never()).generate(user);
     }
@@ -87,7 +88,7 @@ class AuthenticateUseCaseTest {
                 () -> authenticateUseCase.authenticate(EMAIL, RAW_PASSWORD)
         );
 
-        assertEquals("senha fodida", exception.getMessage());
+        assertEquals(ConstMessagesEnum.INVALID_CREDENTIALS.getMessage(), exception.getMessage());
         verify(tokenGenerator, never()).generate(user);
     }
 }

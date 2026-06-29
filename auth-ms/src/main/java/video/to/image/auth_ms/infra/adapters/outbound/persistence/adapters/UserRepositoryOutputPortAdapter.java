@@ -3,28 +3,29 @@ package video.to.image.auth_ms.infra.adapters.outbound.persistence.adapters;
 import org.springframework.stereotype.Component;
 import video.to.image.auth_ms.core.application.ports.out.UserRepositoryOutputPort;
 import video.to.image.auth_ms.core.domain.entities.User;
-import video.to.image.auth_ms.infra.adapters.outbound.persistence.jpaentities.JpaUser;
-import video.to.image.auth_ms.infra.adapters.outbound.persistence.jparepositories.JpaUserRepository;
+import video.to.image.auth_ms.infra.adapters.outbound.persistence.documents.MongoUser;
 import video.to.image.auth_ms.infra.adapters.outbound.persistence.mappers.UserMapper;
+import video.to.image.auth_ms.infra.adapters.outbound.persistence.mongorepositories.MongoUserRepository;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class UserRepositoryOutputPortAdapter implements UserRepositoryOutputPort  {
-    private final JpaUserRepository repository;
+public class UserRepositoryOutputPortAdapter implements UserRepositoryOutputPort {
+
+    private final MongoUserRepository repository;
     private final UserMapper mapper;
 
-    public UserRepositoryOutputPortAdapter(JpaUserRepository repository, UserMapper mapper) {
+    public UserRepositoryOutputPortAdapter(MongoUserRepository repository, UserMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
 
     @Override
     public User save(User user) {
-        JpaUser jpaUser = this.mapper.toEntity(user);
-        return this.mapper.toDomain(this.repository.save(jpaUser));
+        MongoUser mongoUser = this.mapper.toEntity(user);
+        return this.mapper.toDomain(this.repository.save(mongoUser));
     }
 
     @Override
