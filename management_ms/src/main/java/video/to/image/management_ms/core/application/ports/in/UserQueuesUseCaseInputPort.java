@@ -5,6 +5,6 @@ import video.to.image.management_ms.core.domain.entities.User;
 import java.util.UUID;
 
 public interface UserQueuesUseCaseInputPort {
-    User processNewUserEvent(UUID userId);
+    User processNewUserEvent(UUID userId) throws Exception;
     void processDeletedUserEvent(UUID userId);
 }

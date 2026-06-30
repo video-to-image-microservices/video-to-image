@@ -7,8 +7,8 @@ services:
       POSTGRES_PASSWORD: pwd
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U usr -d management_ms"]
       interval: 5s
@@ -35,5 +35,5 @@ services:
       postgres:
         condition: service_healthy
 
-volumes:
-  postgres_data:
+#volumes:
+#  postgres_data:
