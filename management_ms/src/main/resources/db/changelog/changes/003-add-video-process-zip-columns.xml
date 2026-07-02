@@ -5,8 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="db/changelog/changes/001-create-jpa-user-table.xml" relativeToChangelogFile="false"/>
-    <include file="db/changelog/changes/002-create-video-process-table.xml" relativeToChangelogFile="false"/>
-    <include file="db/changelog/changes/003-add-video-process-zip-columns.xml" relativeToChangelogFile="false"/>
+    <changeSet id="003-add-video-process-zip-columns" author="codex">
+        <addColumn tableName="video_process">
+            <column name="zip_storage_key" type="VARCHAR(512)"/>
+            <column name="zip_file_name" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>
