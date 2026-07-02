@@ -1,4 +1,5 @@
 <h1>Arquitetura AWS</h1>
 <h2>Diagrama Generalista</h2>
+<h3>Arquitetura Back-end</h3>
+<img width="3918" height="2608" alt="Diagrama sem nome" src="https://github.com/user-attachments/assets/171fae6b-8e93-4e83-8b2f-f50d55959db7" />
 <h3>Completo</h3>
-<img width="4869" height="4865" alt="diagrama-generalista (1)" src="https://github.com/user-attachments/assets/6fc2565d-1935-4e44-b9af-bccfe853d05c" />
