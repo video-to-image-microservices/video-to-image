@@ -1,0 +1,328 @@
+{
+  "info": {
+    "name": "management-ms video API",
+    "_postman_id": "0d313a3d-0359-427e-9ccf-919d036b4cc5",
+    "description": "Colecao local para testar upload, status, download e eventos SQS do management-ms com LocalStack.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth MS - Login (ajuste body/rota se necessario)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@email.com\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/auth/login",
+          "host": [
+            "{{auth_base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Use se o auth-ms estiver rodando. Depois copie o token retornado para a variavel jwt_token."
+      },
+      "response": []
+    },
+    {
+      "name": "LocalStack SQS - Simular User Queue",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "Action",
+              "value": "SendMessage",
+              "type": "text"
+            },
+            {
+              "key": "Version",
+              "value": "2012-11-05",
+              "type": "text"
+            },
+            {
+              "key": "MessageBody",
+              "value": "{\"userId\":\"{{user_id}}\"}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{localstack_url}}/000000000000/user-created-queue",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "000000000000",
+            "user-created-queue"
+          ]
+        },
+        "description": "Cria o usuario local no management-ms via fila. O user_id precisa bater com o id dentro do JWT."
+      },
+      "response": []
+    },
+    {
+      "name": "Videos - Upload",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.videoProcessId) {",
+              "  pm.environment.set('video_process_id', body.videoProcessId);",
+              "}",
+              "if (body.fileName) {",
+              "  pm.environment.set('file_name', body.fileName);",
+              "}",
+              "if (body.zipStorageKey) {",
+              "  pm.environment.set('zip_storage_key', body.zipStorageKey);",
+              "}",
+              "if (body.zipFileName) {",
+              "  pm.environment.set('zip_file_name', body.zipFileName);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/videos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "videos"
+          ]
+        },
+        "description": "Selecione um arquivo .mp4 no campo file. A resposta 202 salva video_process_id e file_name no environment."
+      },
+      "response": []
+    },
+    {
+      "name": "Videos - Listar Status do Usuario",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/videos/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "videos",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Videos - Status por Nome do Arquivo",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/videos/{{file_name}}/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "videos",
+            "{{file_name}}",
+            "status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "LocalStack S3 - Upload ZIP Gerado Fake",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/zip"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "fake zip generated by local test"
+        },
+        "url": {
+          "raw": "{{localstack_url}}/videos-bucket/{{zip_storage_key}}",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "videos-bucket",
+            "{{zip_storage_key}}"
+          ]
+        },
+        "description": "Simula o worker gravando o .zip gerado no S3 exatamente na chave esperada pelo management-ms."
+      },
+      "response": []
+    },
+    {
+      "name": "LocalStack SQS - Simular Status Queue PROCESSED",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "Action",
+              "value": "SendMessage",
+              "type": "text"
+            },
+            {
+              "key": "Version",
+              "value": "2012-11-05",
+              "type": "text"
+            },
+            {
+              "key": "MessageBody",
+              "value": "{\"videoProcessId\":\"{{video_process_id}}\",\"status\":\"PROCESSED\",\"zipStorageKey\":\"{{zip_storage_key}}\",\"zipFileName\":\"{{zip_file_name}}\"}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{localstack_url}}/000000000000/video-status-queue",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "000000000000",
+            "video-status-queue"
+          ]
+        },
+        "description": "Simula o worker/processador avisando que o video foi processado."
+      },
+      "response": []
+    },
+    {
+      "name": "LocalStack SQS - Ver Process Queue",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "Action",
+              "value": "ReceiveMessage",
+              "type": "text"
+            },
+            {
+              "key": "Version",
+              "value": "2012-11-05",
+              "type": "text"
+            },
+            {
+              "key": "MaxNumberOfMessages",
+              "value": "10",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{localstack_url}}/000000000000/process-queue",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "000000000000",
+            "process-queue"
+          ]
+        },
+        "description": "Confere se o upload publicou mensagem na process-queue."
+      },
+      "response": []
+    },
+    {
+      "name": "Videos - Download",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/videos/{{file_name}}/download",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "videos",
+            "{{file_name}}",
+            "download"
+          ]
+        },
+        "description": "Baixa o .zip gerado no S3. Se o status ainda nao for PROCESSED, retorna erro."
+      },
+      "response": []
+    }
+  ]
+}
