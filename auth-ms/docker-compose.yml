@@ -4,7 +4,7 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_MONGODB_URI: mongodb://mongo:27017/auth_ms
+      MONGODB_URI: mongodb://mongo:27017/auth_ms
       MONGOCK_ENABLED: "true"
       SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
       REDIS_HOST: redis
@@ -24,7 +24,6 @@ services:
       MONGO_INITDB_DATABASE: auth_ms
 
   localstack:
-    # latest (2026.x) exige LOCALSTACK_AUTH_TOKEN; 4.14 funciona sem conta
     image: localstack/localstack:4.14.0
     ports:
       - "4566:4566"
