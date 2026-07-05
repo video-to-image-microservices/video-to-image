@@ -1,0 +1,39 @@
+services:
+  auth-ms:
+    build: .
+    ports:
+      - "8082:8082"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/auth_ms
+      MONGOCK_ENABLED: "true"
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      REDIS_HOST: redis
+    depends_on:
+      mongo:
+        condition: service_started
+      localstack:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: auth_ms
+
+  localstack:
+    image: localstack/localstack:4.14.0
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+      DEBUG: 0
+    volumes:
+      - ./localstack/init:/etc/localstack/init/ready.d
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
