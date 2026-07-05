@@ -1,0 +1,71 @@
+services:
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs,s3
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - "./localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh"
+    healthcheck:
+      test: ["CMD", "awslocal", "sqs", "list-queues"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: management_ms
+      POSTGRES_USER: usr
+      POSTGRES_PASSWORD: pwd
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usr -d management_ms"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/management_ms
+      SPRING_DATASOURCE_USERNAME: usr
+      SPRING_DATASOURCE_PASSWORD: pwd
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: QWluZGEgcXVlIGV1IGFuZGFzc2UgcGVsbyB2YWxlIGRhIHNvbWJyYSBkYSBtb3J0ZSwgbsOjbyB0ZW1lcmlhIG1hbCBhbGd1bSwgcG9ycXVlIHR1IGVzdMOhcyBjb21pZ287IGEgdHVhIHZhcmEgZSBvIHRldSBjYWphZG8gbWUgY29uc29sYW0uU2FsbW9zIDIzOjQ=
+      SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_S3_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_S3_PATH_STYLE_ACCESS_ENABLED: "true"
+      SPRING_CLOUD_AWS_REGION_STATIC: us-east-1
+      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
+      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
+      APP_SQS_USER_CREATED_QUEUE: user-created-queue
+      APP_SQS_USER_DELETED_QUEUE: user-deleted-queue
+      APP_SQS_STATUS_QUEUE: video-status-queue
+      APP_SQS_PROCESS_QUEUE: process-queue
+      APP_S3_VIDEO_BUCKET: videos-bucket
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
