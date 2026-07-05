@@ -1,13 +1,11 @@
 # Video to Image Microservices
 
-<h2>Arquitetura</h2>
-<h3>Diagrama Generalista</h3>
-<h4>Arquitetura Back-end</h4>
-<img width="3918" height="2608" alt="Diagrama-generalista-backend" src="https://github.com/user-attachments/assets/398e5283-c837-494c-bee8-7c6ffb03b07f" />
-
 Sistema distribuído para processamento assíncrono de vídeos, projetado para receber uploads de vídeos, processá-los em paralelo e disponibilizar as imagens extraídas em um arquivo ZIP para download.
 
 A aplicação foi desenvolvida com uma arquitetura baseada em microsserviços e comunicação orientada a eventos, priorizando escalabilidade, alta disponibilidade, resiliência e desacoplamento entre os componentes.
+
+<h4>Arquitetura Back-end</h4>
+<img width="3918" height="2608" alt="Diagrama-generalista-backend" src="https://github.com/user-attachments/assets/398e5283-c837-494c-bee8-7c6ffb03b07f" />
 
 ## Principais funcionalidades
 
@@ -22,13 +20,14 @@ A aplicação foi desenvolvida com uma arquitetura baseada em microsserviços e 
 
 ## Arquitetura
 
-A solução segue princípios de **Clean Architecture**, **Domain-Driven Design (DDD)** e arquitetura orientada a eventos, permitindo que os serviços evoluam de forma independente e escalem horizontalmente conforme a demanda.
+A solução segue princípios de **Arquitetura Hexagonal** e arquitetura orientada a eventos, permitindo que os serviços evoluam de forma independente e escalem horizontalmente conforme a demanda.
 
 ## Tecnologias
 
 * Java (Spring Boot)
-* PostgreSQL
-* Redis
+* PostgreSQL (Amazon RDS)
+* Redis (Amazon Elasticache for Redis)
+* MongoDB (Amazon DocumentDB)
 * Amazon SQS
 * Docker
 * GitHub Actions
