@@ -1,8 +1,8 @@
 # Video to Image Microservices
 
-<h1>Arquitetura</h1>
-<h2>Diagrama Generalista</h2>
-<h3>Arquitetura Back-end</h3>
+<h2>Arquitetura</h2>
+<h3>Diagrama Generalista</h3>
+<h4>Arquitetura Back-end</h4>
 <img width="3918" height="2608" alt="Diagrama-generalista-backend" src="https://github.com/user-attachments/assets/398e5283-c837-494c-bee8-7c6ffb03b07f" />
 
 Sistema distribuído para processamento assíncrono de vídeos, projetado para receber uploads de vídeos, processá-los em paralelo e disponibilizar as imagens extraídas em um arquivo ZIP para download.
