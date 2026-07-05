@@ -234,18 +234,47 @@ Aguarde o MongoDB e o LocalStack estarem prontos:
 ```bash
 docker compose logs -f mongo localstack
 ```
-
-### 2. Rodar a aplicação (Maven)
+---
+**Customizar JWT secret:**
 
 ```bash
-./mvnw spring-boot:run
+JWT_SECRET=seu-secret-com-pelo-menos-32-caracteres docker compose up --build
 ```
 
-Na primeira execução, o **Mongock** cria o índice único em `email` na coleção `tb_user`.
+> Defina `JWT_SECRET` no ambiente do host antes do `docker compose up`. O valor é lido pelo Spring via `jwt.secret=${JWT_SECRET:...}` em `application.properties`.
 
-A aplicação sobe em **http://localhost:8082**.
+---
 
-### 3. Fluxo completo de validação
+### Dockerfile
+
+Build multi-stage em [`auth-ms/Dockerfile`](auth-ms/Dockerfile):
+
+1. **Build:** `maven:3.9-eclipse-temurin-17` — resolve dependências e gera o JAR
+2. **Runtime:** `eclipse-temurin:17-jre-alpine` — executa como usuário não-root
+
+```bash
+cd auth-ms
+docker build -t auth-ms:local .
+docker run -p 8082:8082 \
+  -e SPRING_MONGODB_URI=mongodb://host.docker.internal:27017/auth_ms \
+  -e SPRING_CLOUD_AWS_SQS_ENDPOINT=http://host.docker.internal:4566 \
+  --add-host=host.docker.internal:host-gateway \
+  auth-ms:local
+```
+---
+
+## Docker
+
+### Subir stack completa (app + MongoDB + LocalStack)
+
+```bash
+cd auth-ms
+docker compose up --build
+```
+
+O container `auth-ms` conecta ao MongoDB pelo hostname `mongo` e ao LocalStack pelo hostname `localstack`.
+
+### Fluxo completo de validação
 
 ```bash
 # 1. Criar usuário
@@ -264,77 +293,7 @@ aws --endpoint-url=http://localhost:4566 sqs receive-message \
 # 4. Inspecionar dados no MongoDB
 docker compose exec mongo mongosh auth_ms --eval 'db.tb_user.find().pretty()'
 ```
-
 ---
-
-## Docker
-
-### Subir stack completa (app + MongoDB + LocalStack)
-
-```bash
-cd auth-ms
-docker compose up --build
-```
-
-O container `auth-ms` conecta ao MongoDB pelo hostname `mongo` e ao LocalStack pelo hostname `localstack`.
-
-**Customizar JWT secret:**
-
-```bash
-JWT_SECRET=seu-secret-com-pelo-menos-32-caracteres docker compose up --build
-```
-
-> Defina `JWT_SECRET` no ambiente do host antes do `docker compose up`. O valor é lido pelo Spring via `jwt.secret=${JWT_SECRET:...}` em `application.properties`.
-
-### Dockerfile
-
-Build multi-stage em [`auth-ms/Dockerfile`](auth-ms/Dockerfile):
-
-1. **Build:** `maven:3.9-eclipse-temurin-17` — resolve dependências e gera o JAR
-2. **Runtime:** `eclipse-temurin:17-jre-alpine` — executa como usuário não-root
-
-```bash
-cd auth-ms
-docker build -t auth-ms:local .
-docker run -p 8082:8082 \
-  -e SPRING_MONGODB_URI=mongodb://host.docker.internal:27017/auth_ms \
-  -e SPRING_CLOUD_AWS_SQS_ENDPOINT=http://host.docker.internal:4566 \
-  --add-host=host.docker.internal:host-gateway \
-  auth-ms:local
-```
-
----
-
-## Variáveis de ambiente
-
-| Variável | Descrição | Padrão |
-|----------|-----------|--------|
-| `MONGODB_URI` / `SPRING_MONGODB_URI` | URI de conexão MongoDB/DocumentDB | `mongodb://localhost:27017/auth_ms` |
-| `MONGOCK_ENABLED` | Habilita migrations Mongock no startup | `true` |
-| `JWT_SECRET` | Chave HMAC para assinar JWT | Valor default em `application.properties` |
-| `JWT_EXPIRATION_MS` | Expiração do token (via `jwt.expiration-ms`) | `86400000` (24h) |
-| `SPRING_CLOUD_AWS_SQS_ENDPOINT` | Endpoint SQS (LocalStack) | `http://localhost:4566` |
-
-### DocumentDB na AWS
-
-Em produção, defina `MONGODB_URI` com TLS e parâmetros obrigatórios do DocumentDB:
-
-```
-mongodb://user:pass@cluster.docdb.amazonaws.com:27017/auth_ms?tls=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false
-```
-
-Configure também o truststore com o certificado RDS da AWS.
-
----
-
-## Banco de dados e Mongock
-
-Os dados são armazenados no MongoDB (dev local) ou **Amazon DocumentDB** (produção). O schema de índices é gerenciado pelo **Mongock** (runner standalone, compatível com Spring Boot 4).
-
-```
-auth-ms/src/main/java/video/to/image/auth_ms/infra/migrations/
-└── UserCollectionChangeUnit.java   # Índice único em email
-```
 
 ### Coleção `tb_user`
 
