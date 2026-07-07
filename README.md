@@ -43,5 +43,40 @@ A solução segue princípios de **Arquitetura Hexagonal** e arquitetura orienta
 * Observabilidade e monitoramento.
 * Pipeline de CI/CD automatizado.
 
+## Modelagens de dados
 
+### Auth-ms - MongoDB / DocumentDB
+<img width="1175" height="500" alt="image" src="https://github.com/user-attachments/assets/01e189f2-f801-4373-b33a-a7447afe6628" />
+
+#### `tb_user`
+Armazena os dados dos usuários da plataforma.
+
+**Características:**
+- Senha armazenada utilizando hash BCrypt.
+- Responsável pelas informações de autenticação e identificação dos usuários.
+
+#### `mongockChangeLog`
+Armazena o histórico de migrations executadas pelo Mongock.
+
+**Características:**
+- Controle de versões do banco de dados.
+- Registro das migrations já aplicadas na coleção.
+
+
+### Management-ms - PostgreSQL / Amazon RDS for PostgreSQL
+<img width="1234" height="643" alt="image" src="https://github.com/user-attachments/assets/0de91e18-523d-493f-83fd-8c6b46299a52" />
+
+#### `user`
+Armazena o id consumido pela fila "user-created-queue"
+
+**Características:**
+- Responsável pela identificação dos usuários.
+- Um usuário pode possuir muitos processamentos de vídeo (video_process)
+
+#### `video_process`
+Armazena dados referente aos pedidos de processamento de vídeo feitos por usuários
+
+**Características:**
+- Responsável pela identificação dos usuários.
+- Um processo pertence a apenas um usuário.
 
