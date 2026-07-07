@@ -80,3 +80,12 @@ Armazena dados referente aos pedidos de processamento de vídeo feitos por usuá
 - Responsável pela identificação dos usuários.
 - Um processo pertence a apenas um usuário.
 
+## Diagramas de arquitetura
+
+### AWS
+
+#### Diagrama generalista da arquitetura backend
+<img width="3918" height="2608" alt="Diagrama-generalista-backend" src="https://github.com/user-attachments/assets/398e5283-c837-494c-bee8-7c6ffb03b07f" />
+
+#### Diagrama de comunicação assíncrona entre microserviços
+<img width="1435" height="1463" alt="comunicacao-entreservicos" src="https://github.com/user-attachments/assets/c08ca9ed-005d-43db-845d-4062f01c9b1d" />
