@@ -1,0 +1,350 @@
+{
+  "info": {
+    "name": "video-to-image integrated local",
+    "_postman_id": "3575f706-f6a0-4e2e-9df1-0ed69590d84b",
+    "description": "Fluxo integrado local: auth-ms cria/login, management-ms usa o JWT e consome eventos SQS do auth-ms.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth MS - Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{user_name}}\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/users",
+          "host": [
+            "{{auth_base_url}}"
+          ],
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  const body = pm.response.json();",
+              "  pm.environment.set('user_id', body.id);",
+              "}",
+              "pm.test('created or already exists', function () {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth MS - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/auth/login",
+          "host": [
+            "{{auth_base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.environment.set('jwt_token', body.token);",
+              "if (body.user && body.user.id) {",
+              "  pm.environment.set('user_id', body.user.id);",
+              "}",
+              "pm.test('login ok', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth MS - Get Current User",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jwt_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{auth_base_url}}/users/{{user_id}}",
+          "host": [
+            "{{auth_base_url}}"
+          ],
+          "path": [
+            "users",
+            "{{user_id}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management MS - Upload Video",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jwt_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{management_base_url}}/videos",
+          "host": [
+            "{{management_base_url}}"
+          ],
+          "path": [
+            "videos"
+          ]
+        },
+        "description": "Selecione um arquivo no campo file. Se der 404 logo apos criar usuario, aguarde 1-2 segundos para o management-ms consumir o evento user-created."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.videoProcessId) pm.environment.set('video_process_id', body.videoProcessId);",
+              "if (body.fileName) pm.environment.set('file_name', body.fileName);",
+              "if (body.zipStorageKey) pm.environment.set('zip_storage_key', body.zipStorageKey);",
+              "if (body.zipFileName) pm.environment.set('zip_file_name', body.zipFileName);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Management MS - List Status",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jwt_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{management_base_url}}/videos/status",
+          "host": [
+            "{{management_base_url}}"
+          ],
+          "path": [
+            "videos",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "LocalStack SQS - Read Process Queue",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "Action",
+              "value": "ReceiveMessage",
+              "type": "text"
+            },
+            {
+              "key": "Version",
+              "value": "2012-11-05",
+              "type": "text"
+            },
+            {
+              "key": "MaxNumberOfMessages",
+              "value": "10",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{localstack_url}}/000000000000/process-queue",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "000000000000",
+            "process-queue"
+          ]
+        }
+      }
+    },
+    {
+      "name": "LocalStack S3 - Upload Fake ZIP",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/zip"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "fake zip generated by local test"
+        },
+        "url": {
+          "raw": "{{localstack_url}}/videos-bucket/{{zip_storage_key}}",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "videos-bucket",
+            "{{zip_storage_key}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "LocalStack SQS - Send PROCESSED Status",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "Action",
+              "value": "SendMessage",
+              "type": "text"
+            },
+            {
+              "key": "Version",
+              "value": "2012-11-05",
+              "type": "text"
+            },
+            {
+              "key": "MessageBody",
+              "value": "{\"videoProcessId\":\"{{video_process_id}}\",\"status\":\"PROCESSED\",\"zipStorageKey\":\"{{zip_storage_key}}\",\"zipFileName\":\"{{zip_file_name}}\"}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{localstack_url}}/000000000000/video-status-queue",
+          "host": [
+            "{{localstack_url}}"
+          ],
+          "path": [
+            "000000000000",
+            "video-status-queue"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Management MS - Download ZIP",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jwt_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{management_base_url}}/videos/{{file_name}}/download",
+          "host": [
+            "{{management_base_url}}"
+          ],
+          "path": [
+            "videos",
+            "{{file_name}}",
+            "download"
+          ]
+        }
+      }
+    }
+  ]
+}
