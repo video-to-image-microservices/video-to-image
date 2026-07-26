@@ -85,6 +85,7 @@ services:
       REDIS_HOST: management-redis
       REDIS_PORT: 6379
       MAX_UPLOAD_SIZE: 500MB
+      APP_CACHE_S3_FILES_MAX_BYTES: "524288000"
       JWT_SECRET: *jwt_secret
       SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
       SPRING_CLOUD_AWS_S3_ENDPOINT: http://localstack:4566

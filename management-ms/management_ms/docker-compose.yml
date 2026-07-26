@@ -62,6 +62,7 @@ services:
       APP_SQS_STATUS_QUEUE: video-status-queue
       APP_SQS_PROCESS_QUEUE: process-queue
       APP_S3_VIDEO_BUCKET: videos-bucket
+      APP_CACHE_S3_FILES_MAX_BYTES: "524288000"
     depends_on:
       postgres:
         condition: service_healthy
