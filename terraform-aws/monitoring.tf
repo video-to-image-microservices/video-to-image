@@ -1,5 +1,29 @@
 locals {
   monitoring_dashboard_name = "${var.project_name}-operations"
+  monitoring_queue_names = {
+    process          = "process-queue"
+    process_dlq      = "process-queue-dlq"
+    user_created_dlq = "user-created-queue-dlq"
+    user_deleted_dlq = "user-deleted-queue-dlq"
+    video_status_dlq = "video-status-queue-dlq"
+  }
+  monitoring_asg_names = {
+    auth       = "auth-ms-asg"
+    management = "management-ms-asg"
+    worker     = "worker-ms-asg"
+  }
+}
+
+data "aws_lb" "monitoring" {
+  name = var.monitoring_alb_name
+}
+
+data "aws_lb_target_group" "auth_ms_monitoring" {
+  name = var.monitoring_auth_target_group_name
+}
+
+data "aws_lb_target_group" "management_ms_monitoring" {
+  name = var.monitoring_management_target_group_name
 }
 
 resource "aws_cloudwatch_metric_alarm" "auth_ms_unhealthy" {
@@ -15,8 +39,8 @@ resource "aws_cloudwatch_metric_alarm" "auth_ms_unhealthy" {
   treat_missing_data  = "breaching"
 
   dimensions = {
-    LoadBalancer = aws_lb.main.arn_suffix
-    TargetGroup  = aws_lb_target_group.auth_ms.arn_suffix
+    LoadBalancer = data.aws_lb.monitoring.arn_suffix
+    TargetGroup  = data.aws_lb_target_group.auth_ms_monitoring.arn_suffix
   }
 }
 
@@ -33,8 +57,8 @@ resource "aws_cloudwatch_metric_alarm" "management_ms_unhealthy" {
   treat_missing_data  = "breaching"
 
   dimensions = {
-    LoadBalancer = aws_lb.main.arn_suffix
-    TargetGroup  = aws_lb_target_group.management_ms.arn_suffix
+    LoadBalancer = data.aws_lb.monitoring.arn_suffix
+    TargetGroup  = data.aws_lb_target_group.management_ms_monitoring.arn_suffix
   }
 }
 
@@ -51,7 +75,7 @@ resource "aws_cloudwatch_metric_alarm" "process_dlq_not_empty" {
   treat_missing_data  = "notBreaching"
 
   dimensions = {
-    QueueName = aws_sqs_queue.process_dlq.name
+    QueueName = local.monitoring_queue_names.process_dlq
   }
 }
 
@@ -76,18 +100,18 @@ resource "aws_cloudwatch_dashboard" "operations" {
               "AWS/ApplicationELB",
               "HealthyHostCount",
               "LoadBalancer",
-              aws_lb.main.arn_suffix,
+              data.aws_lb.monitoring.arn_suffix,
               "TargetGroup",
-              aws_lb_target_group.auth_ms.arn_suffix,
+              data.aws_lb_target_group.auth_ms_monitoring.arn_suffix,
               { label = "auth-ms" }
             ],
             [
               "AWS/ApplicationELB",
               "HealthyHostCount",
               "LoadBalancer",
-              aws_lb.main.arn_suffix,
+              data.aws_lb.monitoring.arn_suffix,
               "TargetGroup",
-              aws_lb_target_group.management_ms.arn_suffix,
+              data.aws_lb_target_group.management_ms_monitoring.arn_suffix,
               { label = "management-ms" }
             ]
           ]
@@ -108,7 +132,7 @@ resource "aws_cloudwatch_dashboard" "operations" {
               "AWS/ApplicationELB",
               "RequestCount",
               "LoadBalancer",
-              aws_lb.main.arn_suffix,
+              data.aws_lb.monitoring.arn_suffix,
               { stat = "Sum", label = "Requisicoes" }
             ],
             [
@@ -136,7 +160,7 @@ resource "aws_cloudwatch_dashboard" "operations" {
               "AWS/SQS",
               "ApproximateNumberOfMessagesVisible",
               "QueueName",
-              aws_sqs_queue.process.name,
+              local.monitoring_queue_names.process,
               { label = "Aguardando" }
             ],
             [
@@ -161,10 +185,10 @@ resource "aws_cloudwatch_dashboard" "operations" {
           stat   = "Maximum"
           period = 60
           metrics = [
-            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", aws_sqs_queue.user_created_dlq.name, { label = "user-created" }],
-            [".", ".", ".", aws_sqs_queue.user_deleted_dlq.name, { label = "user-deleted" }],
-            [".", ".", ".", aws_sqs_queue.video_status_dlq.name, { label = "video-status" }],
-            [".", ".", ".", aws_sqs_queue.process_dlq.name, { label = "process" }]
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", local.monitoring_queue_names.user_created_dlq, { label = "user-created" }],
+            [".", ".", ".", local.monitoring_queue_names.user_deleted_dlq, { label = "user-deleted" }],
+            [".", ".", ".", local.monitoring_queue_names.video_status_dlq, { label = "video-status" }],
+            [".", ".", ".", local.monitoring_queue_names.process_dlq, { label = "process" }]
           ]
         }
       },
@@ -179,9 +203,9 @@ resource "aws_cloudwatch_dashboard" "operations" {
           region = var.aws_region
           period = 60
           metrics = [
-            ["AWS/AutoScaling", "GroupDesiredCapacity", "AutoScalingGroupName", aws_autoscaling_group.auth_ms.name, { label = "auth-ms" }],
-            [".", ".", ".", aws_autoscaling_group.management_ms.name, { label = "management-ms" }],
-            [".", ".", ".", aws_autoscaling_group.worker_ms.name, { label = "worker-ms" }]
+            ["AWS/AutoScaling", "GroupDesiredCapacity", "AutoScalingGroupName", local.monitoring_asg_names.auth, { label = "auth-ms" }],
+            [".", ".", ".", local.monitoring_asg_names.management, { label = "management-ms" }],
+            [".", ".", ".", local.monitoring_asg_names.worker, { label = "worker-ms" }]
           ]
         }
       }

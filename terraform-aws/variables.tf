@@ -8,6 +8,24 @@ variable "project_name" {
   default     = "video-to-image"
 }
 
+variable "monitoring_alb_name" {
+  description = "Nome do ALB existente que fornece as métricas operacionais."
+  type        = string
+  default     = "main-alb"
+}
+
+variable "monitoring_auth_target_group_name" {
+  description = "Nome do target group do auth-ms."
+  type        = string
+  default     = "auth-ms-tg"
+}
+
+variable "monitoring_management_target_group_name" {
+  description = "Nome do target group do management-ms."
+  type        = string
+  default     = "management-ms-tg"
+}
+
 variable "vpc_cidr" {
   default = "10.0.0.0/16"
 }
