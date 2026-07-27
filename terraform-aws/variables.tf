@@ -9,3 +9,11 @@ variable "vpc_cidr" {
 variable "public_subnet_cidr" {
   default = "10.0.1.0/24"
 }
+
+variable "auth_ms_subnet_cidr" {
+  default = "10.0.2.0/24"
+}
+
+variable "auth_ms_documentdb_subnet_cidr" {
+  default = "10.0.3.0/24"
+}
