@@ -83,13 +83,11 @@ terraform output video_bucket_name
 
 ## CI/CD dos microsservicos
 
-O Terraform cria a role
-`github-actions-video-to-image-deploy` e o provedor OIDC do GitHub. A trust
-policy aceita somente workflows da branch `main` destes repositorios:
+O Terraform cria o provedor OIDC do GitHub e duas roles:
 
-- `video-to-image-microservices/auth-ms`
-- `video-to-image-microservices/management-ms`
-- `video-to-image-microservices/worker-ms`
+- `github-actions-video-to-image-deploy` para os repositorios da organizacao;
+- `github-actions-worker-ms-deploy`, vinculada ao arquivo de workflow do
+  `worker-ms`.
 
 Cada repositorio possui `.github/workflows/ci-cd-aws.yml`. Pull requests
 executam apenas `mvn verify`. Um push em `main`, depois dos testes:

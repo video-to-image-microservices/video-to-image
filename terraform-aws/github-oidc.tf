@@ -118,8 +118,8 @@ data "aws_iam_policy_document" "github_actions_worker_assume_role" {
 
     condition {
       test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:job_workflow_ref"
-      values   = ["video-to-image-microservices/worker-ms/.github/workflows/ci-cd-aws.yml@refs/heads/main"]
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:video-to-image-microservices@297548236/worker-ms@1313148069:ref:refs/heads/main"]
     }
   }
 }
