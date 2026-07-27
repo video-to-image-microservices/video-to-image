@@ -99,3 +99,43 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
   role   = aws_iam_role.github_actions_deploy.id
   policy = data.aws_iam_policy_document.github_actions_deploy.json
 }
+
+data "aws_iam_policy_document" "github_actions_worker_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:job_workflow_ref"
+      values   = ["video-to-image-microservices/worker-ms/.github/workflows/ci-cd-aws.yml@refs/heads/main"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_actions_worker_deploy" {
+  name                 = "github-actions-worker-ms-deploy"
+  assume_role_policy   = data.aws_iam_policy_document.github_actions_worker_assume_role.json
+  max_session_duration = 3600
+
+  tags = {
+    Name = "github-actions-worker-ms-deploy"
+  }
+}
+
+resource "aws_iam_role_policy" "github_actions_worker_deploy" {
+  name   = "publish-ecr-and-refresh-asg"
+  role   = aws_iam_role.github_actions_worker_deploy.id
+  policy = data.aws_iam_policy_document.github_actions_deploy.json
+}
