@@ -2,6 +2,12 @@ variable "aws_region" {
   default = "us-east-1"
 }
 
+variable "project_name" {
+  description = "Prefixo usado nos recursos operacionais e de monitoramento."
+  type        = string
+  default     = "video-to-image"
+}
+
 variable "vpc_cidr" {
   default = "10.0.0.0/16"
 }

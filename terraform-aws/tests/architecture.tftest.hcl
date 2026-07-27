@@ -44,4 +44,19 @@ run "dedicated_architecture" {
     condition     = aws_instance.auth_ms_mongo[0].instance_type == "t3.micro"
     error_message = "The Free Plan fallback MongoDB instance must remain small."
   }
+
+  assert {
+    condition     = aws_cloudwatch_dashboard.operations.dashboard_name == "${var.project_name}-operations"
+    error_message = "The operational CloudWatch dashboard must be provisioned."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_metric_alarm.process_dlq_not_empty.threshold == 1
+    error_message = "A single message in the processing DLQ must trigger an alarm."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_metric_alarm.auth_ms_unhealthy.treat_missing_data == "breaching"
+    error_message = "Missing auth-ms health metrics must be treated as an outage."
+  }
 }

@@ -1,0 +1,43 @@
+name: Infraestrutura e artefatos
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+
+      - name: Formatação Terraform
+        working-directory: terraform-aws
+        run: terraform fmt -check -recursive
+
+      - name: Inicializar sem backend
+        working-directory: terraform-aws
+        run: terraform init -backend=false
+
+      - name: Validar Terraform
+        working-directory: terraform-aws
+        run: terraform validate
+
+      - name: Testar arquitetura Terraform
+        working-directory: terraform-aws
+        run: terraform test
+
+      - name: Validar teste E2E e dashboard
+        run: |
+          bash -n scripts/e2e-concurrent.sh
+          jq empty monitoring/grafana/dashboards/microservices-overview.json

@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: video-to-image
+    orgId: 1
+    folder: Video to Image
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

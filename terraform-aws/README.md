@@ -114,6 +114,34 @@ aws sqs get-queue-attributes \
   --attribute-names ApproximateNumberOfMessages
 ```
 
+## Monitoramento de baixo custo
+
+O Terraform cria um dashboard CloudWatch com métricas nativas do ALB, das
+filas SQS/DLQs e dos três Auto Scaling Groups. Também cria três alarmes:
+
+- `auth-ms` sem target saudável;
+- `management-ms` sem target saudável;
+- mensagem presente na DLQ de processamento.
+
+Não são usados Managed Prometheus nem Managed Grafana. Veja
+[`../docs/monitoramento.md`](../docs/monitoramento.md).
+
+```bash
+terraform output cloudwatch_dashboard_name
+terraform output -json critical_alarm_names
+```
+
+## Testes da infraestrutura
+
+```bash
+terraform fmt -check -recursive
+terraform validate
+terraform test
+```
+
+O workflow `.github/workflows/infra-ci.yml` executa essas verificações em
+pull requests e pushes para `main`.
+
 ## Observacoes
 
 - Esta topologia cria recursos cobraveis, incluindo NAT Gateway, ALB,
