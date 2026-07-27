@@ -80,6 +80,16 @@ resource "aws_subnet" "auth_ms_documentdb" {
   }
 }
 
+resource "aws_subnet" "auth_ms_documentdb_b" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.auth_ms_documentdb_b_subnet_cidr
+  availability_zone = "${var.aws_region}a"
+
+  tags = {
+    Name = "auth-ms-documentdb-subnet-b"
+  }
+}
+
 resource "aws_subnet" "auth_ms_elasticache" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.auth_ms_elasticache_subnet_cidr
@@ -87,6 +97,16 @@ resource "aws_subnet" "auth_ms_elasticache" {
 
   tags = {
     Name = "auth-ms-elasticache-subnet"
+  }
+}
+
+resource "aws_subnet" "auth_ms_elasticache_b" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.auth_ms_elasticache_b_subnet_cidr
+  availability_zone = "${var.aws_region}b"
+
+  tags = {
+    Name = "auth-ms-elasticache-subnet-b"
   }
 }
 
@@ -138,8 +158,18 @@ resource "aws_route_table_association" "auth_ms_documentdb" {
   route_table_id = aws_route_table.private.id
 }
 
+resource "aws_route_table_association" "auth_ms_documentdb_b" {
+  subnet_id      = aws_subnet.auth_ms_documentdb_b.id
+  route_table_id = aws_route_table.private.id
+}
+
 resource "aws_route_table_association" "auth_ms_elasticache" {
   subnet_id      = aws_subnet.auth_ms_elasticache.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "auth_ms_elasticache_b" {
+  subnet_id      = aws_subnet.auth_ms_elasticache_b.id
   route_table_id = aws_route_table.private.id
 }
 
@@ -201,7 +231,7 @@ resource "aws_security_group" "auth_ms" {
 
 resource "aws_security_group" "auth_ms_documentdb" {
   name        = "auth-ms-documentdb-sg"
-  description = "Security group for auth-ms DocumentDB"
+  description = "Security group for auth-ms MongoDB on EC2"
   vpc_id      = aws_vpc.main.id
 
   # aceita trafego apenas das instâncias de auth-ms
@@ -246,5 +276,260 @@ resource "aws_security_group" "auth_ms_elasticache" {
 
   tags = {
     Name = "auth-ms-elasticache-sg"
+  }
+}
+
+resource "aws_elasticache_subnet_group" "auth_ms" {
+  name = "auth-ms-elasticache-subnet-group"
+  subnet_ids = [
+    aws_subnet.auth_ms_elasticache.id,
+    aws_subnet.auth_ms_elasticache_b.id,
+  ]
+
+  tags = {
+    Name = "auth-ms-elasticache-subnet-group"
+  }
+}
+
+resource "aws_elasticache_cluster" "auth_ms" {
+  cluster_id           = "auth-ms-redis"
+  engine               = "redis"
+  engine_version       = "7.1"
+  node_type            = "cache.t3.micro"
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+  port                 = 6379
+  subnet_group_name    = aws_elasticache_subnet_group.auth_ms.name
+  security_group_ids   = [aws_security_group.auth_ms_elasticache.id]
+
+  tags = {
+    Name = "auth-ms-redis"
+  }
+}
+
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+}
+
+resource "aws_iam_role" "auth_ms_mongo" {
+  name = "auth-ms-mongo-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "auth-ms-mongo-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "auth_ms_mongo_ssm" {
+  role       = aws_iam_role.auth_ms_mongo.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "auth_ms_mongo" {
+  name = "auth-ms-mongo-profile"
+  role = aws_iam_role.auth_ms_mongo.name
+}
+
+resource "aws_instance" "auth_ms_mongo" {
+  ami                    = data.aws_ami.amazon_linux.id
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.auth_ms_documentdb.id
+  vpc_security_group_ids = [aws_security_group.auth_ms_documentdb.id]
+  iam_instance_profile   = aws_iam_instance_profile.auth_ms_mongo.name
+
+  user_data = <<-EOF
+#!/bin/bash
+set -euo pipefail
+
+cat > /etc/yum.repos.d/mongodb-org-7.0.repo <<'REPO'
+[mongodb-org-7.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/amazon/2023/mongodb-org/7.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://pgp.mongodb.com/server-7.0.asc
+REPO
+
+dnf install -y mongodb-org
+sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongod.conf
+systemctl enable mongod
+systemctl start mongod
+EOF
+
+  tags = {
+    Name = "auth-ms-mongo"
+  }
+}
+
+resource "aws_sqs_queue" "user_created_dlq" {
+  name = "user-created-queue-dlq"
+}
+
+resource "aws_sqs_queue" "user_created" {
+  name                       = "user-created-queue"
+  visibility_timeout_seconds = 30
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.user_created_dlq.arn
+    maxReceiveCount     = 3
+  })
+}
+
+resource "aws_sqs_queue" "user_deleted_dlq" {
+  name = "user-deleted-queue-dlq"
+}
+
+resource "aws_sqs_queue" "user_deleted" {
+  name                       = "user-deleted-queue"
+  visibility_timeout_seconds = 30
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.user_deleted_dlq.arn
+    maxReceiveCount     = 3
+  })
+}
+
+resource "aws_sqs_queue" "video_status_dlq" {
+  name = "video-status-queue-dlq"
+}
+
+resource "aws_sqs_queue" "video_status" {
+  name                       = "video-status-queue"
+  visibility_timeout_seconds = 30
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.video_status_dlq.arn
+    maxReceiveCount     = 3
+  })
+}
+
+resource "aws_sqs_queue" "process_dlq" {
+  name = "process-queue-dlq"
+}
+
+resource "aws_sqs_queue" "process" {
+  name                       = "process-queue"
+  visibility_timeout_seconds = 30
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.process_dlq.arn
+    maxReceiveCount     = 3
+  })
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"]
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+resource "aws_iam_role" "auth_ms" {
+  name = "auth-ms-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "auth-ms-ec2-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "auth_ms_ssm" {
+  role       = aws_iam_role.auth_ms.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy" "auth_ms_sqs" {
+  name = "auth-ms-sqs-publish"
+  role = aws_iam_role.auth_ms.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:GetQueueUrl",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [
+          aws_sqs_queue.user_created.arn,
+          aws_sqs_queue.user_deleted.arn
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "auth_ms" {
+  name = "auth-ms-ec2-profile"
+  role = aws_iam_role.auth_ms.name
+}
+
+resource "aws_launch_template" "auth_ms" {
+  name_prefix   = "auth-ms-"
+  image_id      = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
+
+  vpc_security_group_ids = [aws_security_group.auth_ms.id]
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.auth_ms.name
+  }
+
+  user_data = base64encode(<<-EOF
+#!/bin/bash
+apt-get update -y
+apt-get install docker.io -y
+systemctl enable docker
+systemctl start docker
+docker pull caiqueluci0/auth-ms:1.0
+docker run -d --restart always --name api -p 8080:8082 caiqueluci0/auth-ms:1.0
+EOF
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "auth-ms"
+    }
   }
 }
