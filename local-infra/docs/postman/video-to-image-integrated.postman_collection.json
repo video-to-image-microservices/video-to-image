@@ -21,7 +21,7 @@
           "raw": "{\n  \"name\": \"{{user_name}}\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
         },
         "url": {
-          "raw": "{{auth_base_url}}/users",
+          "raw": "{{auth_base_url}}/auth/users",
           "host": [
             "{{auth_base_url}}"
           ],
@@ -109,7 +109,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{auth_base_url}}/users/{{user_id}}",
+          "raw": "{{auth_base_url}}/auth/users/{{user_id}}",
           "host": [
             "{{auth_base_url}}"
           ],

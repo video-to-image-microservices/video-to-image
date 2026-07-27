@@ -89,3 +89,15 @@ output "process_queue_url" {
 output "auth_ms_launch_template_id" {
   value = aws_launch_template.auth_ms.id
 }
+
+output "auth_ms_asg_name" {
+  value = aws_autoscaling_group.auth_ms.name
+}
+
+output "alb_dns_name" {
+  value = aws_lb.main.dns_name
+}
+
+output "auth_ms_target_group_arn" {
+  value = aws_lb_target_group.auth_ms.arn
+}

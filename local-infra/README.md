@@ -59,4 +59,4 @@ O `worker-ms` consome `process-queue`, extrai frames com ffmpeg, grava o ZIP no 
 - Auth: http://localhost:8082
 - Management: http://localhost:8080
 - LocalStack: http://localhost:4566
-- Auth Swagger: http://localhost:8082/swagger-ui.html
+- Auth Swagger: http://localhost:8082/auth/swagger-ui.html

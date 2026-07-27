@@ -70,7 +70,7 @@ class AuthControllerWebTest {
                 .password("senha123")
                 .build();
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -86,7 +86,7 @@ class AuthControllerWebTest {
                 .password("senha123")
                 .build();
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -102,7 +102,7 @@ class AuthControllerWebTest {
                 .password("wrong-password")
                 .build();
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())

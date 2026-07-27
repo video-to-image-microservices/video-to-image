@@ -16,7 +16,7 @@ printf "sample video content %s" "$(date)" > "$sample"
 
 printf "Waiting services"
 for i in $(seq 1 60); do
-  auth_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/swagger-ui.html || true)
+  auth_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/auth/swagger-ui.html || true)
   localstack_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/_localstack/health || true)
   mgmt_code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/videos/status || true)
 
@@ -35,7 +35,7 @@ for i in $(seq 1 60); do
 done
 
 create_body=$(printf '{"name":"%s","email":"%s","password":"%s"}' "$name" "$email" "$password")
-create_resp=$(curl -s -X POST http://localhost:8082/users -H "Content-Type: application/json" -d "$create_body")
+create_resp=$(curl -s -X POST http://localhost:8082/auth/users -H "Content-Type: application/json" -d "$create_body")
 user_id=$(printf "%s" "$create_resp" | json_get id)
 if [ -z "$user_id" ]; then
   printf "Create user failed: %s\n" "$create_resp"

@@ -10,7 +10,7 @@ json_get() {
 }
 
 for i in $(seq 1 60); do
-  code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/swagger-ui.html || true)
+  code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/auth/swagger-ui.html || true)
   if [ "$code" = "200" ] || [ "$code" = "302" ]; then
     break
   fi
@@ -22,7 +22,7 @@ for i in $(seq 1 60); do
 done
 
 create_body=$(printf '{"name":"Step Five","email":"%s","password":"%s"}' "$email" "$password")
-create_resp=$(curl -s -X POST http://localhost:8082/users -H "Content-Type: application/json" -d "$create_body")
+create_resp=$(curl -s -X POST http://localhost:8082/auth/users -H "Content-Type: application/json" -d "$create_body")
 user_id=$(printf "%s" "$create_resp" | json_get id)
 if [ -z "$user_id" ]; then
   printf "Create user failed: %s\n" "$create_resp"
@@ -40,7 +40,7 @@ fi
 response_file="/tmp/auth-step5-response.json"
 http_code=$(curl -s -o "$response_file" -w "%{http_code}" \
   -H "Authorization: Bearer $token" \
-  "http://localhost:8082/users/$user_id")
+  "http://localhost:8082/auth/users/$user_id")
 
 printf "GET /users/%s HTTP %s\n" "$user_id" "$http_code"
 cat "$response_file"

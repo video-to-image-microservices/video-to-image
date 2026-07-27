@@ -19,7 +19,7 @@ import video.to.image.auth_ms.infra.adapters.inbound.web.presenter.exceptions.Ht
 import video.to.image.auth_ms.infra.adapters.inbound.web.services.AuthService;
 
 @RestController
-@RequestMapping(value = "/auth", produces = {"application/json"})
+@RequestMapping(produces = {"application/json"})
 @Tag(name = "Auth controller", description = "endpoints de autenticação")
 @RequiredArgsConstructor
 public class AuthController {

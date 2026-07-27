@@ -34,6 +34,17 @@ resource "aws_subnet" "public" {
   }
 }
 
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.public_subnet_b_cidr
+  availability_zone       = "${var.aws_region}b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "public-subnet-b"
+  }
+}
+
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
@@ -57,6 +68,11 @@ resource "aws_route_table" "public" {
 
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.public_b.id
   route_table_id = aws_route_table.public.id
 }
 
@@ -355,6 +371,11 @@ resource "aws_instance" "auth_ms_mongo" {
   vpc_security_group_ids = [aws_security_group.auth_ms_documentdb.id]
   iam_instance_profile   = aws_iam_instance_profile.auth_ms_mongo.name
 
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+
   user_data = <<-EOF
 #!/bin/bash
 set -euo pipefail
@@ -368,11 +389,14 @@ enabled=1
 gpgkey=https://pgp.mongodb.com/server-7.0.asc
 REPO
 
-dnf install -y mongodb-org
+# Instala só o server (evita estouro de disco com tools/mongosh)
+dnf install -y mongodb-org-server
 sed -i 's/bindIp: 127.0.0.1/bindIp: 0.0.0.0/' /etc/mongod.conf
 systemctl enable mongod
 systemctl start mongod
 EOF
+
+  user_data_replace_on_change = true
 
   tags = {
     Name = "auth-ms-mongo"
@@ -515,14 +539,34 @@ resource "aws_launch_template" "auth_ms" {
     name = aws_iam_instance_profile.auth_ms.name
   }
 
+  # Hop limit 2 para o container Docker ler o instance profile (IMDSv2)
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
+
   user_data = base64encode(<<-EOF
 #!/bin/bash
+set -euo pipefail
 apt-get update -y
-apt-get install docker.io -y
+apt-get install -y docker.io
 systemctl enable docker
 systemctl start docker
+
 docker pull caiqueluci0/auth-ms:1.0
-docker run -d --restart always --name api -p 8080:8082 caiqueluci0/auth-ms:1.0
+
+docker rm -f api 2>/dev/null || true
+docker run -d --restart always --name api -p 8080:8082 \
+  -e MONGODB_URI=mongodb://${aws_instance.auth_ms_mongo.private_ip}:27017/auth_ms \
+  -e SPRING_MONGODB_URI=mongodb://${aws_instance.auth_ms_mongo.private_ip}:27017/auth_ms \
+  -e REDIS_HOST=${aws_elasticache_cluster.auth_ms.cache_nodes[0].address} \
+  -e SPRING_DATA_REDIS_HOST=${aws_elasticache_cluster.auth_ms.cache_nodes[0].address} \
+  -e REDIS_PORT=6379 \
+  -e SPRING_DATA_REDIS_PORT=6379 \
+  -e AWS_REGION=${var.aws_region} \
+  -e SPRING_CLOUD_AWS_REGION_STATIC=${var.aws_region} \
+  caiqueluci0/auth-ms:1.0
 EOF
   )
 
@@ -530,6 +574,95 @@ EOF
     resource_type = "instance"
     tags = {
       Name = "auth-ms"
+    }
+  }
+}
+
+resource "aws_autoscaling_group" "auth_ms" {
+  name                      = "auth-ms-asg"
+  desired_capacity          = 1
+  min_size                  = 1
+  max_size                  = 5
+  vpc_zone_identifier       = [aws_subnet.auth_ms.id]
+  target_group_arns         = [aws_lb_target_group.auth_ms.arn]
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+
+  launch_template {
+    id      = aws_launch_template.auth_ms.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "auth-ms"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_lb" "main" {
+  name               = "main-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = [aws_subnet.public.id, aws_subnet.public_b.id]
+
+  tags = {
+    Name = "main-alb"
+  }
+}
+
+resource "aws_lb_target_group" "auth_ms" {
+  name     = "auth-ms-tg"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+
+  health_check {
+    enabled             = true
+    path                = "/auth/actuator/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "auth-ms-tg"
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not Found"
+      status_code  = "404"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "auth_ms" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.auth_ms.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/auth", "/auth/*"]
     }
   }
 }
