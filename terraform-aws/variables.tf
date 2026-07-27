@@ -17,3 +17,7 @@ variable "auth_ms_subnet_cidr" {
 variable "auth_ms_documentdb_subnet_cidr" {
   default = "10.0.3.0/24"
 }
+
+variable "auth_ms_elasticache_subnet_cidr" {
+  default = "10.0.4.0/24"
+}

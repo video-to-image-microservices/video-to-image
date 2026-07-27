@@ -80,6 +80,16 @@ resource "aws_subnet" "auth_ms_documentdb" {
   }
 }
 
+resource "aws_subnet" "auth_ms_elasticache" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.auth_ms_elasticache_subnet_cidr
+  availability_zone = "${var.aws_region}a"
+
+  tags = {
+    Name = "auth-ms-elasticache-subnet"
+  }
+}
+
 resource "aws_eip" "nat" {
   domain = "vpc"
 
@@ -125,6 +135,11 @@ resource "aws_route_table_association" "auth_ms" {
 
 resource "aws_route_table_association" "auth_ms_documentdb" {
   subnet_id      = aws_subnet.auth_ms_documentdb.id
+  route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "auth_ms_elasticache" {
+  subnet_id      = aws_subnet.auth_ms_elasticache.id
   route_table_id = aws_route_table.private.id
 }
 
@@ -206,5 +221,30 @@ resource "aws_security_group" "auth_ms_documentdb" {
 
   tags = {
     Name = "auth-ms-documentdb-sg"
+  }
+}
+
+resource "aws_security_group" "auth_ms_elasticache" {
+  name        = "auth-ms-elasticache-sg"
+  description = "Security group for auth-ms ElastiCache Redis"
+  vpc_id      = aws_vpc.main.id
+
+  # aceita trafego apenas das instâncias de auth-ms
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.auth_ms.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "auth-ms-elasticache-sg"
   }
 }
