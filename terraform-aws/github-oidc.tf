@@ -1,16 +1,3 @@
-locals {
-  github_actions_repositories = [
-    "video-to-image-microservices/auth-ms",
-    "video-to-image-microservices/management-ms",
-    "video-to-image-microservices/worker-ms",
-  ]
-
-  github_actions_subjects = [
-    for repository in local.github_actions_repositories :
-    "repo:${repository}:ref:refs/heads/main"
-  ]
-}
-
 resource "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
 
@@ -40,9 +27,9 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = local.github_actions_subjects
+      values   = ["repo:video-to-image-microservices/*"]
     }
   }
 }
