@@ -1,5 +1,9 @@
 # Video to Image Microservices
 
+O provisionamento completo com ALB, Auto Scaling Groups dedicados, bancos,
+caches, S3 e SQS esta documentado em
+[`terraform-aws/README.md`](terraform-aws/README.md).
+
 Sistema distribuído para processamento assíncrono de vídeos, projetado para receber uploads de vídeos, processá-los em paralelo e disponibilizar as imagens extraídas em um arquivo ZIP para download.
 
 A aplicação foi desenvolvida com uma arquitetura baseada em microsserviços e comunicação orientada a eventos, priorizando escalabilidade, alta disponibilidade, resiliência e desacoplamento entre os componentes.

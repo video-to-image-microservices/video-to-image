@@ -1,0 +1,33 @@
+aws_region = "us-east-1"
+
+auth_ms_image       = "SEU_DOCKERHUB/auth-ms:1.0"
+management_ms_image = "SEU_DOCKERHUB/management-ms:1.0"
+worker_ms_image     = "SEU_DOCKERHUB/worker-ms:1.0"
+
+auth_ms_instance_type       = "t3.micro"
+management_ms_instance_type = "t3.micro"
+worker_ms_instance_type     = "c5.large"
+
+auth_ms_min_size         = 1
+auth_ms_desired_capacity = 1
+auth_ms_max_size         = 5
+
+management_ms_min_size         = 1
+management_ms_desired_capacity = 1
+management_ms_max_size         = 5
+
+worker_ms_min_size         = 1
+worker_ms_desired_capacity = 1
+worker_ms_max_size         = 10
+
+documentdb_instance_class = "db.t3.medium"
+documentdb_username       = "authadmin"
+documentdb_password       = "AuthMongo123!"
+
+rds_instance_class = "db.t3.micro"
+rds_database_name  = "management_ms"
+rds_username       = "usr"
+rds_password       = "Management123!"
+
+# Opcional. Se for null, o nome usa conta e regiao automaticamente.
+video_bucket_name = null

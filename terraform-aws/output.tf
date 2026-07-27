@@ -51,11 +51,13 @@ output "auth_ms_elasticache_security_group_id" {
 }
 
 output "auth_ms_mongo_private_ip" {
-  value = aws_instance.auth_ms_mongo.private_ip
+  value       = aws_instance.auth_ms_mongo[0].private_ip
+  description = "Private IP of the dedicated MongoDB fallback required by AWS Free Plan."
 }
 
 output "auth_ms_mongo_uri" {
-  value = "mongodb://${aws_instance.auth_ms_mongo.private_ip}:27017/auth_ms"
+  value     = "mongodb://${aws_instance.auth_ms_mongo[0].private_ip}:27017/auth_ms"
+  sensitive = true
 }
 
 output "auth_ms_redis_host" {
@@ -100,4 +102,54 @@ output "alb_dns_name" {
 
 output "auth_ms_target_group_arn" {
   value = aws_lb_target_group.auth_ms.arn
+}
+
+output "documentdb_endpoint" {
+  value       = null
+  description = "Unavailable on AWS Free Plan; auth_ms_mongo_private_ip is used instead."
+}
+
+output "management_rds_endpoint" {
+  value = aws_db_instance.management.address
+}
+
+output "management_redis_host" {
+  value = aws_elasticache_cluster.management.cache_nodes[0].address
+}
+
+output "video_bucket_name" {
+  value = aws_s3_bucket.videos.id
+}
+
+output "management_ms_asg_name" {
+  value = aws_autoscaling_group.management_ms.name
+}
+
+output "worker_ms_asg_name" {
+  value = aws_autoscaling_group.worker_ms.name
+}
+
+output "auth_base_url" {
+  value = "http://${aws_lb.main.dns_name}/auth"
+}
+
+output "management_base_url" {
+  value = "http://${aws_lb.main.dns_name}/management"
+}
+
+output "ecr_auth_ms_repository_url" {
+  value = aws_ecr_repository.auth_ms.repository_url
+}
+
+output "ecr_management_ms_repository_url" {
+  value = aws_ecr_repository.management_ms.repository_url
+}
+
+output "ecr_worker_ms_repository_url" {
+  value = aws_ecr_repository.worker_ms.repository_url
+}
+
+output "github_actions_deploy_role_arn" {
+  description = "Role assumida pelos workflows GitHub Actions via OIDC"
+  value       = aws_iam_role.github_actions_deploy.arn
 }

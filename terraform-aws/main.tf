@@ -365,6 +365,7 @@ resource "aws_iam_instance_profile" "auth_ms_mongo" {
 }
 
 resource "aws_instance" "auth_ms_mongo" {
+  count                  = 1
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = "t3.micro"
   subnet_id              = aws_subnet.auth_ms_documentdb.id
@@ -409,7 +410,8 @@ resource "aws_sqs_queue" "user_created_dlq" {
 
 resource "aws_sqs_queue" "user_created" {
   name                       = "user-created-queue"
-  visibility_timeout_seconds = 30
+  visibility_timeout_seconds = 120
+  receive_wait_time_seconds  = 20
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.user_created_dlq.arn
@@ -423,7 +425,8 @@ resource "aws_sqs_queue" "user_deleted_dlq" {
 
 resource "aws_sqs_queue" "user_deleted" {
   name                       = "user-deleted-queue"
-  visibility_timeout_seconds = 30
+  visibility_timeout_seconds = 120
+  receive_wait_time_seconds  = 20
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.user_deleted_dlq.arn
@@ -437,7 +440,8 @@ resource "aws_sqs_queue" "video_status_dlq" {
 
 resource "aws_sqs_queue" "video_status" {
   name                       = "video-status-queue"
-  visibility_timeout_seconds = 30
+  visibility_timeout_seconds = 120
+  receive_wait_time_seconds  = 20
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.video_status_dlq.arn
@@ -451,7 +455,8 @@ resource "aws_sqs_queue" "process_dlq" {
 
 resource "aws_sqs_queue" "process" {
   name                       = "process-queue"
-  visibility_timeout_seconds = 30
+  visibility_timeout_seconds = 3600
+  receive_wait_time_seconds  = 20
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.process_dlq.arn
@@ -500,6 +505,11 @@ resource "aws_iam_role_policy_attachment" "auth_ms_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "auth_ms_ecr" {
+  role       = aws_iam_role.auth_ms.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 resource "aws_iam_role_policy" "auth_ms_sqs" {
   name = "auth-ms-sqs-publish"
   role = aws_iam_role.auth_ms.id
@@ -530,8 +540,8 @@ resource "aws_iam_instance_profile" "auth_ms" {
 
 resource "aws_launch_template" "auth_ms" {
   name_prefix   = "auth-ms-"
-  image_id      = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
+  image_id      = data.aws_ami.amazon_linux.id
+  instance_type = var.auth_ms_instance_type
 
   vpc_security_group_ids = [aws_security_group.auth_ms.id]
 
@@ -549,24 +559,23 @@ resource "aws_launch_template" "auth_ms" {
   user_data = base64encode(<<-EOF
 #!/bin/bash
 set -euo pipefail
-apt-get update -y
-apt-get install -y docker.io
-systemctl enable docker
-systemctl start docker
+dnf install -y docker
+systemctl enable --now docker
 
-docker pull caiqueluci0/auth-ms:1.0
+aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${local.ecr_registry}
+docker pull ${aws_ecr_repository.auth_ms.repository_url}:latest
 
 docker rm -f api 2>/dev/null || true
 docker run -d --restart always --name api -p 8080:8082 \
-  -e MONGODB_URI=mongodb://${aws_instance.auth_ms_mongo.private_ip}:27017/auth_ms \
-  -e SPRING_MONGODB_URI=mongodb://${aws_instance.auth_ms_mongo.private_ip}:27017/auth_ms \
+  -e 'MONGODB_URI=mongodb://${aws_instance.auth_ms_mongo[0].private_ip}:27017/auth_ms' \
   -e REDIS_HOST=${aws_elasticache_cluster.auth_ms.cache_nodes[0].address} \
   -e SPRING_DATA_REDIS_HOST=${aws_elasticache_cluster.auth_ms.cache_nodes[0].address} \
   -e REDIS_PORT=6379 \
   -e SPRING_DATA_REDIS_PORT=6379 \
+  -e JWT_SECRET=${var.jwt_secret} \
   -e AWS_REGION=${var.aws_region} \
   -e SPRING_CLOUD_AWS_REGION_STATIC=${var.aws_region} \
-  caiqueluci0/auth-ms:1.0
+  ${aws_ecr_repository.auth_ms.repository_url}:latest
 EOF
   )
 
@@ -580,17 +589,25 @@ EOF
 
 resource "aws_autoscaling_group" "auth_ms" {
   name                      = "auth-ms-asg"
-  desired_capacity          = 1
-  min_size                  = 1
-  max_size                  = 5
-  vpc_zone_identifier       = [aws_subnet.auth_ms.id]
+  desired_capacity          = var.auth_ms_desired_capacity
+  min_size                  = var.auth_ms_min_size
+  max_size                  = var.auth_ms_max_size
+  vpc_zone_identifier       = [aws_subnet.auth_ms.id, aws_subnet.auth_ms_b.id]
   target_group_arns         = [aws_lb_target_group.auth_ms.arn]
-  health_check_type         = "EC2"
-  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  health_check_grace_period = 3600
 
   launch_template {
     id      = aws_launch_template.auth_ms.id
     version = "$Latest"
+  }
+
+  instance_refresh {
+    strategy = "Rolling"
+
+    preferences {
+      min_healthy_percentage = 50
+    }
   }
 
   tag {
