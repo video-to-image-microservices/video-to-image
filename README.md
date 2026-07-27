@@ -32,9 +32,9 @@ Este serviço concentra **quem o usuário é** e **se as credenciais são válid
 
 ### O que o auth-ms faz
 
-- Registra usuários (`POST /users`)
+- Registra usuários (`POST /auth/users`)
 - Autentica e emite JWT HS256 (`POST /auth/login`)
-- Garante que cada usuário só acessa **o próprio** recurso (`GET/PUT/DELETE /users/{id}` com validação de ownership)
+- Garante que cada usuário só acessa **o próprio** recurso (`GET/PUT/DELETE /auth/users/{id}` com validação de ownership)
 - Publica eventos `user-created` e `user-deleted` para que outros serviços reajam sem acoplamento direto
 
 ### O que os consumidores fazem
@@ -87,7 +87,7 @@ sequenceDiagram
     participant US as UserService
     participant UU as UserCrudUseCase
 
-    C->>F: GET /users/{id} + Bearer token
+    C->>F: GET /auth/users/{id} + Bearer token
     F->>F: Valida JWT e extrai userId
     F->>SC: Principal = userId
     UC->>US: get(id)
@@ -117,10 +117,10 @@ sequenceDiagram
 | Método | Endpoint | Autenticação | Descrição |
 |--------|----------|--------------|-----------|
 | `POST` | `/auth/login` | Pública | Login e obtenção do JWT |
-| `POST` | `/users` | Pública | Cadastro de usuário |
-| `GET` | `/users/{id}` | JWT | Buscar perfil (apenas o próprio) |
-| `PUT` | `/users/{id}` | JWT | Atualizar nome (apenas o próprio) |
-| `DELETE` | `/users/{id}` | JWT | Excluir conta (apenas o próprio) |
+| `POST` | `/auth/users` | Pública | Cadastro de usuário |
+| `GET` | `/auth/users/{id}` | JWT | Buscar perfil (apenas o próprio) |
+| `PUT` | `/auth/users/{id}` | JWT | Atualizar nome (apenas o próprio) |
+| `DELETE` | `/auth/users/{id}` | JWT | Excluir conta (apenas o próprio) |
 
 ### Claims do JWT
 
@@ -137,7 +137,7 @@ sequenceDiagram
 **Cadastro:**
 
 ```bash
-curl -X POST http://localhost:8082/users \
+curl -X POST http://localhost:8082/auth/users \
   -H "Content-Type: application/json" \
   -d '{"name":"João","email":"joao@email.com","password":"senha123"}'
 ```
@@ -153,7 +153,7 @@ curl -X POST http://localhost:8082/auth/login \
 **Buscar perfil (substitua `{id}` e `{token}`):**
 
 ```bash
-curl http://localhost:8082/users/{id} \
+curl http://localhost:8082/auth/users/{id} \
   -H "Authorization: Bearer {token}"
 ```
 
@@ -175,8 +175,8 @@ Quando um usuário é criado ou excluído, o serviço publica mensagens JSON par
 
 | Evento | Fila | Payload | Quando |
 |--------|------|---------|--------|
-| User created | `user-created-queue` | `{ "userId": "<uuid>" }` | Após `POST /users` |
-| User deleted | `user-deleted-queue` | `{ "userId": "<uuid>" }` | Após `DELETE /users/{id}` |
+| User created | `user-created-queue` | `{ "userId": "<uuid>" }` | Após `POST /auth/users` |
+| User deleted | `user-deleted-queue` | `{ "userId": "<uuid>" }` | Após `DELETE /auth/users/{id}` |
 
 ### LocalStack (desenvolvimento)
 
@@ -278,7 +278,7 @@ O container `auth-ms` conecta ao MongoDB pelo hostname `mongo` e ao LocalStack p
 
 ```bash
 # 1. Criar usuário
-curl -s -X POST http://localhost:8082/users \
+curl -s -X POST http://localhost:8082/auth/users \
   -H "Content-Type: application/json" \
   -d '{"name":"Teste","email":"teste@email.com","password":"senha123"}'
 
@@ -333,8 +333,8 @@ O teste de contexto (`AuthMsApplicationTests`) desabilita SQS e Mongock e mocka 
 
 Documentação interativa disponível em:
 
-- **Swagger UI:** http://localhost:8082/swagger-ui.html
-- **OpenAPI JSON:** http://localhost:8082/v3/api-docs
+- **Swagger UI:** http://localhost:8082/auth/swagger-ui.html
+- **OpenAPI JSON:** http://localhost:8082/auth/v3/api-docs
 
 ---
 

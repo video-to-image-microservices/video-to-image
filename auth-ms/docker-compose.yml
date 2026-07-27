@@ -7,7 +7,10 @@ services:
       MONGODB_URI: mongodb://mongo:27017/auth_ms
       MONGOCK_ENABLED: "true"
       SPRING_CLOUD_AWS_SQS_ENDPOINT: http://localstack:4566
+      SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY: test
+      SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY: test
       REDIS_HOST: redis
+      REDIS_PORT: "6379"
     depends_on:
       mongo:
         condition: service_started
@@ -30,6 +33,8 @@ services:
     environment:
       SERVICES: sqs
       DEBUG: 0
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
     volumes:
       - ./localstack/init:/etc/localstack/init/ready.d
 
